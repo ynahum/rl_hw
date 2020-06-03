@@ -39,20 +39,20 @@ class CURuleSolution:
         return False
 
     def get_next_state(self, state, action):
-        next_state = state & ((~action) & (self.states_size -1))
+        next_state = state & ((~(1 << action)) & (self.states_size -1))
         return next_state
 
     def create_cost_greedy_policy(self):
         policy = np.zeros(self.get_states_size(), dtype=int)
         for state in range(1, self.states_size):
-            max_cost = -1
-            max_job = -1
+            max_cost = -np.inf
+            max_action = -1
             for i in range(self.N):
-                job_bit = state & (1 << i)
-                if job_bit and self.costs[i] > max_cost:
+                action_bit = state & (1 << i)
+                if action_bit and self.costs[i] > max_cost:
                     max_cost = self.costs[i]
-                    max_job = i
-            policy[state] = max_job
+                    max_action = i
+            policy[state] = max_action
         return policy
 
 
@@ -76,21 +76,75 @@ class CURuleSolution:
 
         return value
 
+
+    def plot_policy(self, policy):
+        states = np.linspace(0, self.states_size-1, self.states_size, dtype=int)
+        fig = plt.figure(figsize=(8, 6))
+        ax = plt.axes()
+        ax.plot(states, policy)
+        plt.ylim(0, self.N)
+        plt.xlim(0, self.states_size-1)
+        plt.xticks(states)
+        ax.set_xlabel("states")
+        ax.set_ylabel("policy")
+        plt.stem(policy, use_line_collection=True)
+        plt.show()
+
+    def policy_improvement(self, value):
+        # we need to select the action that minimizes the cost
+        # according to the bellman greedy operator
+        policy = np.zeros(self.get_states_size(), dtype=int)
+        for state in range(1, self.states_size):
+            min_value = np.inf
+            selected_action = -1
+            for i in range(self.N):
+                action_bit = state & (1 << i)
+                if action_bit:
+                    next_state = self.get_next_state(state, i)
+                    action_value = self.states_costs[state] + \
+                                   (self.probs[i] * value[next_state]) + \
+                                   ((1 - self.probs[i]) * value[state])
+                    if action_value < min_value:
+                        selected_action = i
+            policy[state] = selected_action
+        return policy
+
+    def policy_iteration_algo(self, initial_policy):
+        start_state_values = []
+        policy = initial_policy
+        prev_value = np.zeros(self.states_size)
+        while True:
+            #1. we calculate the fixed policy value using the current policy
+            policy_value = self.fixed_policy_value_iteration(policy)
+            start_state_values.append(policy_value[self.states_size-1])
+
+            #2. stopping rule - when previous policy value and current policy value are the same
+            if np.array_equal(policy_value, prev_value):
+                break
+            prev_value = policy_value
+
+            #3. apply greedy bellman operator to get a new improved policy
+            policy = self.policy_improvement(policy_value)
+
+        return policy, start_state_values
+
 if __name__ == "__main__":
     cu = CURuleSolution(5, [1, 4, 2, 6, 9], [0.6, 0.5, 0.3, 0.7, 0.1])
     cu.print()
-    #policy = np.zeros(cu.get_states_size(), dtype=int)
-    policy = cu.create_cost_greedy_policy()
+    max_cost_policy = cu.create_cost_greedy_policy()
+    cu.plot_policy(max_cost_policy)
     #print(policy)
-    value = cu.fixed_policy_value_iteration(policy)
-    print(value)
-    # Find Optimal Value
-    #Value = b.ValueIteration(40)
-    #b.PlotValue(Value)
-    # Derive Policy
-    #Policy = b.GreedyPolicy(Value)
-    #b.PlotPolicy(Policy)
-
+    max_cost_value = cu.fixed_policy_value_iteration(max_cost_policy)
+    #print(max_cost_value)
+    policy_iteration_optimal_policy, policy_iteration_start_state_values = \
+        cu.policy_iteration_algo(max_cost_policy)
+    fig = plt.figure()
+    ax = plt.axes()
+    plt.xlim(0, len(policy_iteration_start_state_values))
+    ax.set_xlabel("iterations")
+    ax.set_ylabel("start state value")
+    plt.stem(policy_iteration_start_state_values, use_line_collection=True)
+    plt.show()
 
 
 
