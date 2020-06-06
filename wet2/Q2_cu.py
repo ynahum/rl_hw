@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
+import random
 
 class CURuleSolution:
 
@@ -56,13 +56,26 @@ class CURuleSolution:
             policy[state] = max_action
         return policy
 
+    def create_cu_greedy_policy(self):
+        policy = np.zeros(self.get_states_size(), dtype=int)
+        for state in range(1, self.states_size):
+            max_cu = -np.inf
+            max_action = -1
+            for i in range(self.N):
+                action_bit = state & (1 << i)
+                cu_i = self.costs[i] * self.probs[i]
+                if action_bit and cu_i >max_cu:
+                    max_cu = cu_i
+                    max_action = i
+            policy[state] = max_action
+        return policy
 
     def fixed_policy_value_iteration(self, policy):
         value = np.zeros(self.states_size)
-        prev_value = value
         # we don't need to update the terminal state as its value is always 0 (cost 0)
         # and there are no next states
         while True:
+            prev_value = value
             for state in range(1, self.states_size):
                 action = policy[state]
                 if not self.is_legal_act(state, action):
@@ -82,29 +95,32 @@ class CURuleSolution:
         states = np.linspace(0, self.states_size-1, self.states_size, dtype=int)
         plt.figure(figsize=(8, 6))
         ax = plt.axes()
+        ax.plot(states, policy+1)
         plt.ylim(0, self.N)
         plt.xlim(0, self.states_size-1)
         plt.xticks(states)
         ax.set_xlabel("states")
-        ax.set_ylabel("policy")
-        plt.stem(policy, use_line_collection=True)
+        ax.set_ylabel("policy $\pi_c$(s)")
+        plt.stem(policy+1, use_line_collection=True)
         plt.grid()
         plt.show(block=False)
 
     def plot_values(self, values):
-        plt.figure(figsize=(8, 6))
-        states = np.linspace(0, self.states_size-1, self.states_size, dtype=int)
+        num_iter = len(start_state_values)
+        iterations = np.linspace(0, num_iter-1, num_iter, dtype=int)
         ax = plt.axes()
-        plt.xlim(0, self.states_size-1)
-        plt.xticks(states)
-        ax.set_xlabel("states")
-        ax.set_ylabel("value")
+        plt.xticks(iterations)
         plt.grid()
-        for value in values:
-            plt.stem(states, value, use_line_collection=True)
-        plt.show(block=False)
+        ax.set_xlabel("iterations")
+        ax.set_ylabel("start state value")
+        plt.stem(start_state_values,use_line_collection=False)
+        for i, v in zip(iterations, start_state_values):
+            label = "{:.2f}".format(v)
+            plt.annotate(label,
+                         (i, v))
+        plt.show()
 
-    def plot_first_stage_values(self, values):
+   def plot_first_stage_values(self, values):
         first_stage_values = []
         for value in values:
             first_stage_values.append(value[self.states_size-1])
@@ -131,10 +147,11 @@ class CURuleSolution:
                 if action_bit:
                     next_state = self.get_next_state(state, i)
                     action_value = self.states_costs[state] + \
-                                   (self.probs[i] * self.gamma * value[next_state]) + \
-                                   ((1 - self.probs[i]) * value[state])
+                                   (self.probs[i] * value[next_state]) + \
+                                 ((1 - self.probs[i]) * value[state])
                     if action_value < min_value:
                         selected_action = i
+                        min_value = action_value
             policy[state] = selected_action
         return policy
 
@@ -158,8 +175,18 @@ class CURuleSolution:
             #print(policy)
         return policy, value_collection_iterated
 
+    def simulator(self,current_state,action):
+        if not self.is_legal_act(current_state, action):
+            print("illegal action {0} at state {1}".format(action, state))
+            return
+        rand = random.random()
+        next_state = current_state
+        if(rand<self.probs[action]):
+            next_state = self.get_next_state(current_state,action)
+        return next_state
+
 if __name__ == "__main__":
-    cu = CURuleSolution(5, [1, 4, 2, 6, 9], [0.6, 0.5, 0.3, 0.7, 0.1])
+    cu = CURuleSolution(5, [1, 4, 6,2, 9], [0.6, 0.5, 0.3, 0.7, 0.1])
     cu.print()
     max_cost_policy = cu.create_cost_greedy_policy()
     cu.plot_policy(max_cost_policy)
