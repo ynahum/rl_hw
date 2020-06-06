@@ -64,7 +64,7 @@ class CURuleSolution:
             for i in range(self.N):
                 action_bit = state & (1 << i)
                 cu_i = self.costs[i] * self.probs[i]
-                if action_bit and cu_i >max_cu:
+                if action_bit and cu_i > max_cu:
                     max_cu = cu_i
                     max_action = i
             policy[state] = max_action
@@ -106,21 +106,19 @@ class CURuleSolution:
         plt.show(block=False)
 
     def plot_values(self, values):
-        num_iter = len(start_state_values)
-        iterations = np.linspace(0, num_iter-1, num_iter, dtype=int)
+        plt.figure(figsize=(8, 6))
+        states = np.linspace(0, self.states_size-1, self.states_size, dtype=int)
         ax = plt.axes()
-        plt.xticks(iterations)
+        plt.xlim(0, self.states_size-1)
+        plt.xticks(states)
+        ax.set_xlabel("states")
+        ax.set_ylabel("value")
         plt.grid()
-        ax.set_xlabel("iterations")
-        ax.set_ylabel("start state value")
-        plt.stem(start_state_values,use_line_collection=False)
-        for i, v in zip(iterations, start_state_values):
-            label = "{:.2f}".format(v)
-            plt.annotate(label,
-                         (i, v))
-        plt.show()
+        for value in values:
+            plt.stem(states, value, use_line_collection=True)
+        plt.show(block=False)
 
-   def plot_first_stage_values(self, values):
+    def plot_first_stage_values(self, values):
         first_stage_values = []
         for value in values:
             first_stage_values.append(value[self.states_size-1])
@@ -181,7 +179,7 @@ class CURuleSolution:
             return
         rand = random.random()
         next_state = current_state
-        if(rand<self.probs[action]):
+        if(rand < self.probs[action]):
             next_state = self.get_next_state(current_state,action)
         return next_state
 
@@ -195,7 +193,7 @@ if __name__ == "__main__":
     print("max cost starting values {0}".format(max_cost_value))
     policy_iteration_optimal_policy, policy_iteration_value_collection = \
         cu.policy_iteration_algo(max_cost_policy)
-    cu.plot_values(policy_iteration_value_collection)
+    #cu.plot_values(policy_iteration_value_collection)
     cu.plot_first_stage_values(policy_iteration_value_collection)
     plt.show()
 
