@@ -105,17 +105,18 @@ class CURuleSolution:
         plt.grid()
         plt.show(block=False)
 
-    def plot_values(self, values):
+    def plot_values(self, v_max_c, v_opt):
+        states = np.linspace(0, self.states_size - 1, self.states_size, dtype=int)
         plt.figure(figsize=(8, 6))
-        states = np.linspace(0, self.states_size-1, self.states_size, dtype=int)
         ax = plt.axes()
-        plt.xlim(0, self.states_size-1)
+        ax.plot(states, v_max_c, 'bo-', label=r"$V^{\pi_c}$(s)")
+        ax.plot(states, v_opt, 'ro-', label=r"$V^{{\pi}^*}$(s)")
+        plt.xlim(0, self.states_size - 1)
+        plt.grid()
         plt.xticks(states)
         ax.set_xlabel("states")
         ax.set_ylabel("value")
-        plt.grid()
-        for value in values:
-            plt.stem(states, value, use_line_collection=True)
+        plt.legend(prop={'size': 16})
         plt.show(block=False)
 
     def plot_first_stage_values(self, values):
@@ -184,17 +185,25 @@ class CURuleSolution:
         return next_state
 
 if __name__ == "__main__":
-    cu = CURuleSolution(5, [1, 4, 6,2, 9], [0.6, 0.5, 0.3, 0.7, 0.1])
+    cu = CURuleSolution(5, [1, 4, 6, 2, 9], [0.6, 0.5, 0.3, 0.7, 0.1])
     cu.print()
     max_cost_policy = cu.create_cost_greedy_policy()
-    cu.plot_policy(max_cost_policy)
-    #print(policy)
     max_cost_value = cu.fixed_policy_value_iteration(max_cost_policy)
-    print("max cost starting values {0}".format(max_cost_value))
     policy_iteration_optimal_policy, policy_iteration_value_collection = \
         cu.policy_iteration_algo(max_cost_policy)
-    #cu.plot_values(policy_iteration_value_collection)
     cu.plot_first_stage_values(policy_iteration_value_collection)
+    # print(policy_iteration_optimal_policy)
+
+    optimal_policy_value = cu.fixed_policy_value_iteration(policy_iteration_optimal_policy)
+    #print(optimal_policy_value)
+    cu.plot_values(max_cost_value, optimal_policy_value)
+    max_cu_policy = cu.create_cu_greedy_policy()
+    max_cu_policy_value = cu.fixed_policy_value_iteration(max_cu_policy)
+    print("max cu policy: ",max_cu_policy)
+    print("optimal policy:", policy_iteration_optimal_policy)
+    print(max_cu_policy_value-optimal_policy_value)
+    cu.plot_values(max_cu_policy_value, optimal_policy_value)
+    cu.plot_values(max_cost_value, max_cu_policy_value)
     plt.show()
 
 
