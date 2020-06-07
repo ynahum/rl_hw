@@ -75,8 +75,10 @@ class CURuleSolution:
         value = np.zeros(self.states_size)
         # we don't need to update the terminal state as its value is always 0 (cost 0)
         # and there are no next states
+        i = 0
         while True:
-            prev_value = value
+            #print("value iteration {0}".format(i))
+            prev_value = np.copy(value)
             for state in range(1, self.states_size):
                 action = policy[state]
                 if not self.is_legal_act(state, action):
@@ -84,10 +86,11 @@ class CURuleSolution:
                     return
                 next_state = self.get_next_state(state, action)
                 value[state] = self.states_costs[state] + \
-                    (self.probs[action] * self.gamma * value[next_state]) + \
-                    ((1-self.probs[action]) * value[state])
+                               (self.probs[action] * self.gamma * value[next_state]) + \
+                               ((1-self.probs[action]) * value[state])
             if np.array_equal(value, prev_value):
                 break
+            i = i+1
 
         return value
 
@@ -170,12 +173,12 @@ class CURuleSolution:
         while True:
             #1. we calculate the fixed policy value using the current policy
             policy_value = self.fixed_policy_value_iteration(policy)
-            value_collection_iterated.append(policy_value)
+            value_collection_iterated.append(np.copy(policy_value))
 
             #2. stopping rule - when previous policy value and current policy value are the same
             if np.array_equal(policy_value, prev_value):
                 break
-            prev_value = policy_value
+            prev_value = np.copy(policy_value)
 
             #3. apply greedy bellman operator to get a new improved policy
             policy = self.policy_improvement(policy_value)
@@ -189,7 +192,7 @@ class CURuleSolution:
         rand = random.random()
         next_state = current_state
         if(rand < self.probs[action]):
-            next_state = self.get_next_state(current_state,action)
+            next_state = self.get_next_state(current_state, action)
         return next_state
 
 if __name__ == "__main__":
@@ -208,9 +211,9 @@ if __name__ == "__main__":
     cu.plot_values(max_cost_value, optimal_policy_value)
     max_cu_policy = cu.create_cu_greedy_policy()
     max_cu_policy_value = cu.fixed_policy_value_iteration(max_cu_policy)
+    cu.plot_values(max_cu_policy_value, optimal_policy_value)
+    print("max cost policy: ",max_cost_policy)
     print("max cu policy: ",max_cu_policy)
     print("optimal policy:", policy_iteration_optimal_policy)
-    print(max_cu_policy_value-optimal_policy_value)
-    cu.plot_values(max_cu_policy_value, optimal_policy_value)
-    cu.plot_values(max_cost_value, max_cu_policy_value)
+    print("diff between cu and optimal policies' values:", max_cu_policy_value-optimal_policy_value)
     plt.show()
