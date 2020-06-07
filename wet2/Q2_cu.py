@@ -9,6 +9,7 @@ class CURuleSolution:
         self.states_size = np.power(2, self.N)
         self.costs = costs
         self.probs = probs
+        self.cu = np.multiply(costs, probs)
         self.states_costs = np.zeros(self.states_size)
         self.gamma = gamma
         for i in range(self.states_size):
@@ -63,7 +64,7 @@ class CURuleSolution:
             max_action = -1
             for i in range(self.N):
                 action_bit = state & (1 << i)
-                cu_i = self.costs[i] * self.probs[i]
+                cu_i = self.cu[i]
                 if action_bit and cu_i > max_cu:
                     max_cu = cu_i
                     max_action = i
