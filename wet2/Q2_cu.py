@@ -125,9 +125,16 @@ class CURuleSolution:
             first_stage_values.append(value[self.states_size-1])
         plt.figure(figsize=(8, 6))
         ax = plt.axes()
-        plt.xlim(-1, len(first_stage_values))
-        ticks = np.linspace(0, np.max(first_stage_values), np.int(np.max(first_stage_values)))
-        plt.yticks(ticks)
+        #ticks = np.linspace(0, np.max(first_stage_values), np.int(np.max(first_stage_values)))
+        #plt.yticks(ticks)
+        num_iter = len(first_stage_values)
+        plt.xlim(-1, num_iter)
+        iterations = np.linspace(0, num_iter - 1, num_iter, dtype=int)
+        plt.xticks(iterations)
+        for i, v in zip(iterations, first_stage_values):
+            label = "{:.2f}".format(v)
+            plt.annotate(label,
+                         (i, v))
         plt.grid()
         ax.set_xlabel("iterations")
         ax.set_ylabel("start state value")
@@ -189,6 +196,7 @@ if __name__ == "__main__":
     cu.print()
     max_cost_policy = cu.create_cost_greedy_policy()
     max_cost_value = cu.fixed_policy_value_iteration(max_cost_policy)
+    cu.plot_policy(max_cost_policy)
     policy_iteration_optimal_policy, policy_iteration_value_collection = \
         cu.policy_iteration_algo(max_cost_policy)
     cu.plot_first_stage_values(policy_iteration_value_collection)
@@ -205,7 +213,3 @@ if __name__ == "__main__":
     cu.plot_values(max_cu_policy_value, optimal_policy_value)
     cu.plot_values(max_cost_value, max_cu_policy_value)
     plt.show()
-
-
-
-
