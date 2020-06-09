@@ -186,9 +186,9 @@ class CURuleSolution:
             #print(policy)
         return policy, value_collection_iterated
 
-    def simulator(self,current_state,action):
+    def simulator(self, current_state, action):
         if not self.is_legal_act(current_state, action):
-            print("illegal action {0} at state {1}".format(action, state))
+            print("illegal action {0} at state {1}".format(action, current_state))
             return
         rand = random.random()
         next_state = current_state
@@ -196,17 +196,70 @@ class CURuleSolution:
             next_state = self.get_next_state(current_state, action)
         return next_state
 
+    def td0_policy_evaluation(self, policy, step_size_type, policy_value_reference):
+        value_td0 = np.zeros(self.states_size)
+        num_of_visits_per_state = np.zeros(self.states_size)
+
+        # we start simulating from start state when all jobs are unfinished
+        state = self.states_size - 1
+
+        # to return max of differences to value reference
+        max_diff = []
+        start_state_diff = []
+
+        while state != 0:
+            max_diff.append(np.max(policy_value_reference - value_td0))
+            start_state_diff.append(policy_value_reference[state] - value_td0[state])
+            num_of_visits_per_state[state] += 1
+
+            if step_size_type == 1:
+                alpha = 1/num_of_visits_per_state[state]
+            elif step_size_type == 2:
+                alpha = 0.01
+            else:
+                alpha = 10/(num_of_visits_per_state[state] + 100)
+
+            action = policy[state]
+            cost = self.states_costs[state]
+            next_state = self.simulator(state, action)
+
+            value_td0[state] = \
+                (1-alpha)*value_td0[state] + alpha*(cost + self.gamma*value_td0[next_state])
+
+            state = next_state
+
+        return max_diff, start_state_diff
+
+    def plot_max_diff(self, max_diff, value_name=""):
+        plt.figure(figsize=(8, 6))
+        ax = plt.axes()
+        ax.plot(max_diff, label=value_name)
+        ax.set_xlabel("simulation iterations")
+        ax.set_ylabel("Infinity norm (max)")
+        plt.legend(prop={'size': 16})
+        plt.show(block=False)
+
+
 if __name__ == "__main__":
+
     cu = CURuleSolution(5, [1, 4, 6, 2, 9], [0.6, 0.5, 0.3, 0.7, 0.1])
     cu.print()
     max_cost_policy = cu.create_cost_greedy_policy()
     max_cost_value = cu.fixed_policy_value_iteration(max_cost_policy)
+
+    """
+    #part 1
+
+    # c.
     cu.plot_policy(max_cost_policy)
+
+    # d.
     policy_iteration_optimal_policy, policy_iteration_value_collection = \
         cu.policy_iteration_algo(max_cost_policy)
     cu.plot_first_stage_values(policy_iteration_value_collection)
     # print(policy_iteration_optimal_policy)
 
+    # e.
     optimal_policy_value = cu.fixed_policy_value_iteration(policy_iteration_optimal_policy)
     #print(optimal_policy_value)
     cu.plot_value_vs_optimal_value(max_cost_value, optimal_policy_value, "c")
@@ -217,4 +270,14 @@ if __name__ == "__main__":
     print("max cu policy: ",max_cu_policy)
     print("optimal policy:", policy_iteration_optimal_policy)
     print("diff between cu and optimal policies' values:", max_cu_policy_value-optimal_policy_value)
+    """
+
+    # part 2
+
+    # g.
+    max_diff1, first_stage_diff1 = cu.td0_policy_evaluation(max_cost_policy, 1, max_cost_value)
+    max_diff2, first_stage_diff2 = cu.td0_policy_evaluation(max_cost_policy, 2, max_cost_value)
+    max_diff3, first_stage_diff3 = cu.td0_policy_evaluation(max_cost_policy, 3, max_cost_value)
+    cu.plot_max_diff(max_diff1)
+
     plt.show()
