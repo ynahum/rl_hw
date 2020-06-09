@@ -109,11 +109,12 @@ class CURuleSolution:
         plt.grid()
         plt.show(block=False)
 
-    def plot_values(self, v_max_c, v_opt):
+    def plot_value_vs_optimal_value(self, value, v_opt, value_name=""):
         states = np.linspace(0, self.states_size - 1, self.states_size, dtype=int)
         plt.figure(figsize=(8, 6))
         ax = plt.axes()
-        ax.plot(states, v_max_c, 'bo-', label=r"$V^{\pi}$(s)")
+        value_plot_label = r"$V^{{\pi}_{"+value_name+"}}$(s)"
+        ax.plot(states, value, 'bo-', label=value_plot_label)
         ax.plot(states, v_opt, 'ro-', label=r"$V^{{\pi}^*}$(s)")
         plt.xlim(0, self.states_size - 1)
         plt.grid()
@@ -208,10 +209,10 @@ if __name__ == "__main__":
 
     optimal_policy_value = cu.fixed_policy_value_iteration(policy_iteration_optimal_policy)
     #print(optimal_policy_value)
-    cu.plot_values(max_cost_value, optimal_policy_value)
+    cu.plot_value_vs_optimal_value(max_cost_value, optimal_policy_value, "c")
     max_cu_policy = cu.create_cu_greedy_policy()
     max_cu_policy_value = cu.fixed_policy_value_iteration(max_cu_policy)
-    cu.plot_values(max_cu_policy_value, optimal_policy_value)
+    cu.plot_value_vs_optimal_value(max_cu_policy_value, optimal_policy_value, "cu")
     print("max cost policy: ",max_cost_policy)
     print("max cu policy: ",max_cu_policy)
     print("optimal policy:", policy_iteration_optimal_policy)
