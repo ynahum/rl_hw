@@ -174,11 +174,11 @@ class CURuleSolution:
         while True:
             #1. we calculate the fixed policy value using the current policy
             policy_value = self.fixed_policy_value_iteration(policy)
-            value_collection_iterated.append(np.copy(policy_value))
 
             #2. stopping rule - when previous policy value and current policy value are the same
             if np.array_equal(policy_value, prev_value):
                 break
+            value_collection_iterated.append(np.copy(policy_value))
             prev_value = np.copy(policy_value)
 
             #3. apply greedy bellman operator to get a new improved policy
@@ -190,7 +190,7 @@ class CURuleSolution:
         if not self.is_legal_act(current_state, action):
             print("illegal action {0} at state {1}".format(action, current_state))
             return
-        rand = random.random()
+        rand = random.uniform(0, 1)
         next_state = current_state
         if(rand < self.probs[action]):
             next_state = self.get_next_state(current_state, action)
@@ -205,40 +205,49 @@ class CURuleSolution:
 
         # to return max of differences to value reference
         max_diff = []
-        start_state_diff = []
+        s0_abs_diff = []
 
-        while state != 0:
-            max_diff.append(np.max(policy_value_reference - value_td0))
-            start_state_diff.append(policy_value_reference[state] - value_td0[state])
-            num_of_visits_per_state[state] += 1
+        for i in range(10000):
+            while state != 0:
+                max_diff.append(np.max(policy_value_reference - value_td0))
+                s0_abs_diff.append(np.abs(policy_value_reference[state] - value_td0[state]))
+                num_of_visits_per_state[state] += 1
 
-            if step_size_type == 1:
-                alpha = 1/num_of_visits_per_state[state]
-            elif step_size_type == 2:
-                alpha = 0.01
-            else:
-                alpha = 10/(num_of_visits_per_state[state] + 100)
+                if step_size_type == 1:
+                    alpha = 1/num_of_visits_per_state[state]
+                elif step_size_type == 2:
+                    alpha = 0.01
+                else:
+                    alpha = 10/(num_of_visits_per_state[state] + 100)
 
-            action = policy[state]
-            cost = self.states_costs[state]
-            next_state = self.simulator(state, action)
+                action = policy[state]
+                cost = self.states_costs[state]
+                next_state = self.simulator(state, action)
 
-            value_td0[state] = \
-                (1-alpha)*value_td0[state] + alpha*(cost + self.gamma*value_td0[next_state])
+                value_td0[state] = \
+                    (1-alpha)*value_td0[state] + alpha*(cost + self.gamma*value_td0[next_state])
 
-            state = next_state
+                state = next_state
+            state = self.states_size - 1
 
-        return max_diff, start_state_diff
+        return max_diff, s0_abs_diff
 
-    def plot_max_diff(self, max_diff, value_name=""):
-        plt.figure(figsize=(8, 6))
-        ax = plt.axes()
-        ax.plot(max_diff, label=value_name)
-        ax.set_xlabel("simulation iterations")
-        ax.set_ylabel("Infinity norm (max)")
-        plt.legend(prop={'size': 16})
+    def plot_td_diff(self, max_diff, s0_abs_diff, changing_descr=""):
+        plt.figure(figsize=(8, 8))
+        ax1 = plt.subplot(2, 1, 1)
+        ax1.set_ylabel("Infinity norm (max)")
+        plt.grid()
+        plt.plot(max_diff)
+        title = r"${||V^{{\pi}_{c}}-V_{TD0}||}_{\infty}, "+changing_descr+"$"
+        plt.title(title)
+        ax2 = plt.subplot(2, 1, 2)
+        ax2.set_xlabel("simulation iterations")
+        ax2.set_ylabel("start state error")
+        plt.grid()
+        plt.plot(s0_abs_diff)
+        title = r"${|V^{{\pi}_{c}}(s_0)-V_{TD0}(s_0)|}, "+changing_descr+"$"
+        plt.title(title)
         plt.show(block=False)
-
 
 if __name__ == "__main__":
 
@@ -247,7 +256,7 @@ if __name__ == "__main__":
     max_cost_policy = cu.create_cost_greedy_policy()
     max_cost_value = cu.fixed_policy_value_iteration(max_cost_policy)
 
-    """
+    #"""
     #part 1
 
     # c.
@@ -270,14 +279,16 @@ if __name__ == "__main__":
     print("max cu policy: ",max_cu_policy)
     print("optimal policy:", policy_iteration_optimal_policy)
     print("diff between cu and optimal policies' values:", max_cu_policy_value-optimal_policy_value)
-    """
+    #"""
 
     # part 2
 
     # g.
-    max_diff1, first_stage_diff1 = cu.td0_policy_evaluation(max_cost_policy, 1, max_cost_value)
-    max_diff2, first_stage_diff2 = cu.td0_policy_evaluation(max_cost_policy, 2, max_cost_value)
-    max_diff3, first_stage_diff3 = cu.td0_policy_evaluation(max_cost_policy, 3, max_cost_value)
-    cu.plot_max_diff(max_diff1)
+    max_diff, s0_abs_diff = cu.td0_policy_evaluation(max_cost_policy, 1, max_cost_value)
+    cu.plot_td_diff(max_diff, s0_abs_diff, r"{\alpha}_{1}=1/num\_of\_visits(s), TD(0)")
+    max_diff, s0_abs_diff = cu.td0_policy_evaluation(max_cost_policy, 2, max_cost_value)
+    cu.plot_td_diff(max_diff, s0_abs_diff, r"{\alpha}_{2}=0.01, TD(0)")
+    max_diff, s0_abs_diff = cu.td0_policy_evaluation(max_cost_policy, 3, max_cost_value)
+    cu.plot_td_diff(max_diff, s0_abs_diff, r"{\alpha}_{3}=10/(100+num\_of\_visits(s)), TD(0)")
 
     plt.show()
