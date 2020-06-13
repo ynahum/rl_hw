@@ -200,14 +200,15 @@ class CURuleSolution:
         value_td0 = np.zeros(self.states_size)
         num_of_visits_per_state = np.zeros(self.states_size)
 
-        # we start simulating from start state when all jobs are unfinished
-        state = self.states_size - 1
 
         # to return max of differences to value reference
         max_diff = []
         s0_abs_diff = []
 
         for i in range(10000):
+            # we start simulating from a random start state
+            state = random.randint(0, self.states_size - 1)
+
             while state != 0:
                 max_diff.append(np.max(policy_value_reference - value_td0))
                 s0_abs_diff.append(np.abs(policy_value_reference[state] - value_td0[state]))
