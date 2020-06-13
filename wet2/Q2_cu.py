@@ -196,10 +196,9 @@ class CURuleSolution:
             next_state = self.get_next_state(current_state, action)
         return next_state
 
-    def td0_policy_evaluation(self, policy, step_size_type, policy_value_reference):
-        value_td0 = np.zeros(self.states_size)
-        num_of_visits_per_state = np.zeros(self.states_size)
-
+    def td0_policy_evaluation(self, policy, step_size_type, v_ref):
+        v_td = np.zeros(self.states_size)
+        states_visits = np.zeros(self.states_size)
 
         # to return max of differences to value reference
         max_diff = []
@@ -207,31 +206,80 @@ class CURuleSolution:
 
         for i in range(10000):
             # we start simulating from a random start state
-            state = random.randint(0, self.states_size - 1)
+            state = random.randint(1, self.states_size - 1)
 
             while state != 0:
-                max_diff.append(np.max(policy_value_reference - value_td0))
-                s0_abs_diff.append(np.abs(policy_value_reference[state] - value_td0[state]))
-                num_of_visits_per_state[state] += 1
+                max_diff.append(np.max(v_ref - v_td))
+                s0_abs_diff.append(np.abs(v_ref[state] - v_td[state]))
+                states_visits[state] += 1
 
                 if step_size_type == 1:
-                    alpha = 1/num_of_visits_per_state[state]
+                    alpha = 1/states_visits[state]
                 elif step_size_type == 2:
                     alpha = 0.01
                 else:
-                    alpha = 10/(num_of_visits_per_state[state] + 100)
+                    alpha = 10/(states_visits[state] + 100)
 
                 action = policy[state]
                 cost = self.states_costs[state]
                 next_state = self.simulator(state, action)
 
-                value_td0[state] = \
-                    (1-alpha)*value_td0[state] + alpha*(cost + self.gamma*value_td0[next_state])
+                delta = cost + self.gamma*v_td[next_state] - v_td[state]
+                v_td[state] = v_td[state] + alpha * delta
 
                 state = next_state
-            state = self.states_size - 1
 
         return max_diff, s0_abs_diff
+
+    def td_lambda_policy_evaluation(self, policy, step_size_type, v_ref, _lambda, n):
+        v_td = np.zeros(self.states_size)
+        eligible = np.zeros(self.states_size)
+        states_visits = np.zeros(self.states_size)
+
+        # to return max of differences to value reference
+        max_diff = np.zeros(n)
+        s0_abs_diff = np.zeros(n)
+
+        for i in range(n):
+            # we start simulating from a random start state
+            state = random.randint(1, self.states_size - 1)
+            max_diff[i] = np.max(v_ref - v_td)
+            s0_abs_diff[i] = np.abs(v_ref[state] - v_td[state])
+
+            while state != 0:
+                states_visits[state] += 1
+
+                if step_size_type == 1:
+                    alpha = 1/states_visits[state]
+                elif step_size_type == 2:
+                    alpha = 0.01
+                else:
+                    alpha = 10/(states_visits[state] + 100)
+
+                action = policy[state]
+                cost = self.states_costs[state]
+                next_state = self.simulator(state, action)
+
+                eligible *= _lambda * self.gamma
+                eligible[state] += 1
+                delta = cost + self.gamma*v_td[next_state] - v_td[state]
+                v_td = v_td + alpha * delta * eligible
+
+                state = next_state
+
+        return max_diff, s0_abs_diff
+
+    def td_lambda_policy_evaluation_avg(self, policy, alpha_type, v_ref, _lambda, n, avg_size):
+        sum_max_diff = np.zeros(n)
+        sum_s0_abs_diff = np.zeros(n)
+        for i in range(avg_size):
+            max_diff, s0_abs_diff = \
+                cu.td_lambda_policy_evaluation(policy, alpha_type, v_ref, _lambda, n)
+            sum_max_diff += max_diff
+            sum_s0_abs_diff += s0_abs_diff
+        avg_max_diff = sum_max_diff / avg_size
+        avg_s0_abs_diff = sum_s0_abs_diff / avg_size
+        return avg_max_diff, avg_s0_abs_diff
 
     def plot_td_diff(self, max_diff, s0_abs_diff, changing_descr=""):
         plt.figure(figsize=(8, 8))
@@ -284,6 +332,7 @@ if __name__ == "__main__":
 
     # part 2
 
+    #"""
     # g.
     max_diff, s0_abs_diff = cu.td0_policy_evaluation(max_cost_policy, 1, max_cost_value)
     cu.plot_td_diff(max_diff, s0_abs_diff, r"{\alpha}_{1}=1/num\_of\_visits(s), TD(0)")
@@ -291,5 +340,23 @@ if __name__ == "__main__":
     cu.plot_td_diff(max_diff, s0_abs_diff, r"{\alpha}_{2}=0.01, TD(0)")
     max_diff, s0_abs_diff = cu.td0_policy_evaluation(max_cost_policy, 3, max_cost_value)
     cu.plot_td_diff(max_diff, s0_abs_diff, r"{\alpha}_{3}=10/(100+num\_of\_visits(s)), TD(0)")
+    #"""
+
+    # h.
+    avg_n = 20
+    td_iterations = 10000
+    step_size_type = 3
+    _lambda = 0.1
+    avg_max_diff, avg_s0_abs_diff = \
+        cu.td_lambda_policy_evaluation_avg(max_cost_policy, step_size_type, max_cost_value, _lambda, td_iterations, avg_n)
+    cu.plot_td_diff(avg_max_diff, avg_s0_abs_diff, r"{\alpha}_{3}=10/(100+num\_of\_visits(s)), TD({\lambda}=0.1)")
+    _lambda = 0.5
+    avg_max_diff, avg_s0_abs_diff = \
+        cu.td_lambda_policy_evaluation_avg(max_cost_policy, step_size_type, max_cost_value, _lambda, td_iterations, avg_n)
+    cu.plot_td_diff(avg_max_diff, avg_s0_abs_diff, r"{\alpha}_{3}=10/(100+num\_of\_visits(s)), TD({\lambda}=0.5)")
+    _lambda = 0.9
+    avg_max_diff, avg_s0_abs_diff = \
+        cu.td_lambda_policy_evaluation_avg(max_cost_policy, step_size_type, max_cost_value, _lambda, td_iterations, avg_n)
+    cu.plot_td_diff(avg_max_diff, avg_s0_abs_diff, r"{\alpha}_{3}=10/(100+num\_of\_visits(s)), TD({\lambda}=0.9)")
 
     plt.show()
