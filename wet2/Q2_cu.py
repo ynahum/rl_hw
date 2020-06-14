@@ -7,6 +7,7 @@ class CURuleSolution:
     def __init__(self, n, costs, probs, gamma=1):
         self.N = n
         self.states_size = np.power(2, self.N)
+        self.s0 = self.states_size - 1
         self.costs = costs
         self.probs = probs
         self.cu = np.multiply(costs, probs)
@@ -196,21 +197,22 @@ class CURuleSolution:
             next_state = self.get_next_state(current_state, action)
         return next_state
 
-    def td0_policy_evaluation(self, policy, step_size_type, v_ref):
+    def td0_policy_evaluation(self, policy, step_size_type, v_ref, n_iterations):
         v_td = np.zeros(self.states_size)
         states_visits = np.zeros(self.states_size)
 
         # to return max of differences to value reference
-        max_diff = []
-        s0_abs_diff = []
+        max_diff = np.zeros(n_iterations)
+        s0_abs_diff = np.zeros(n_iterations)
 
-        for i in range(10000):
+        for i in range(n_iterations):
+            max_diff[i] = np.max(v_ref - v_td)
+            s0_abs_diff[i] = np.abs(v_ref[self.s0] - v_td[self.s0])
+
             # we start simulating from a random start state
             state = random.randint(1, self.states_size - 1)
 
             while state != 0:
-                max_diff.append(np.max(v_ref - v_td))
-                s0_abs_diff.append(np.abs(v_ref[state] - v_td[state]))
                 states_visits[state] += 1
 
                 if step_size_type == 1:
@@ -231,7 +233,7 @@ class CURuleSolution:
 
         return max_diff, s0_abs_diff
 
-    def td_lambda_policy_evaluation(self, policy, step_size_type, v_ref, _lambda, n):
+    def td_lambda_policy_evaluation(self, policy, type_of_step_size, v_ref, _lambda, n):
         v_td = np.zeros(self.states_size)
         eligible = np.zeros(self.states_size)
         states_visits = np.zeros(self.states_size)
@@ -241,17 +243,17 @@ class CURuleSolution:
         s0_abs_diff = np.zeros(n)
 
         for i in range(n):
+            max_diff[i] = np.max(v_ref - v_td)
+            s0_abs_diff[i] = np.abs(v_ref[self.s0] - v_td[self.s0])
+
             # we start simulating from a random start state
             state = random.randint(1, self.states_size - 1)
-            max_diff[i] = np.max(v_ref - v_td)
-            s0_abs_diff[i] = np.abs(v_ref[state] - v_td[state])
-
             while state != 0:
                 states_visits[state] += 1
 
-                if step_size_type == 1:
+                if type_of_step_size == 1:
                     alpha = 1/states_visits[state]
-                elif step_size_type == 2:
+                elif type_of_step_size == 2:
                     alpha = 0.01
                 else:
                     alpha = 10/(states_visits[state] + 100)
@@ -281,7 +283,62 @@ class CURuleSolution:
         avg_s0_abs_diff = sum_s0_abs_diff / avg_size
         return avg_max_diff, avg_s0_abs_diff
 
-    def plot_td_diff(self, max_diff, s0_abs_diff, changing_descr=""):
+    def egreedy_policy(self, policy, state, e_prob):
+        rand = random.uniform(0, 1)
+        action = policy[state]
+        if(rand < e_prob):
+            action += random.randint(1, self.N)
+            action %= self.N
+        return action
+
+    def q_learning(self, step_size_type, opt_v, n_iterations, e_greedy_prob = 0.1):
+
+        # init the q table |S| x |A| to zeros
+        q = np.zeros(self.states_size, self.N)
+        states_visits = np.zeros(self.states_size)
+
+        # to return max of differences to value reference
+        max_diff = np.zeros(n_iterations)
+        s0_abs_diff = np.zeros(n_iterations)
+
+        for i in range(n_iterations):
+
+            # calc the current policy (for simulation) of Q estimation
+            policy_q_greedy = np.argmin(q, axis=1)
+            v_policy_q_greedy = self.fixed_policy_value_iteration(policy_q_greedy)
+            max_diff[i] = np.max(opt_v - v_policy_q_greedy)
+
+            # calculate s0 value on Q estimation
+            s0_q_value = q[self.s0].min(q, axis=1)
+            s0_abs_diff[i] = np.abs(opt_v[self.s0] - s0_q_value)
+
+            # we start simulating from a random start state
+            state = random.randint(1, self.states_size - 1)
+
+            while state != 0:
+                states_visits[state] += 1
+
+                if step_size_type == 1:
+                    alpha = 1/states_visits[state]
+                elif step_size_type == 2:
+                    alpha = 0.01
+                else:
+                    alpha = 10/(states_visits[state] + 100)
+
+                action = self.egreedy_policy(policy_q_greedy, state, e_greedy_prob)
+                cost = self.states_costs[state]
+                next_state = self.simulator(state, action)
+
+                q_min_next_state = q[next_state].min(q, axis=1)
+                delta = cost + self.gamma*q_min_next_state - q[state][action]
+                q[state][action] = q[state][action] + alpha * delta
+
+                state = next_state
+
+        return max_diff, s0_abs_diff
+
+
+    def plot_diff(self, max_diff, s0_abs_diff, changing_descr=""):
         plt.figure(figsize=(8, 8))
         ax1 = plt.subplot(2, 1, 1)
         ax1.set_ylabel("Infinity norm (max)")
@@ -324,8 +381,8 @@ if __name__ == "__main__":
     max_cu_policy = cu.create_cu_greedy_policy()
     max_cu_policy_value = cu.fixed_policy_value_iteration(max_cu_policy)
     cu.plot_value_vs_optimal_value(max_cu_policy_value, optimal_policy_value, "cu")
-    print("max cost policy: ",max_cost_policy)
-    print("max cu policy: ",max_cu_policy)
+    print("max cost policy: ", max_cost_policy)
+    print("max cu policy: ", max_cu_policy)
     print("optimal policy:", policy_iteration_optimal_policy)
     print("diff between cu and optimal policies' values:", max_cu_policy_value-optimal_policy_value)
     #"""
@@ -334,29 +391,38 @@ if __name__ == "__main__":
 
     #"""
     # g.
-    max_diff, s0_abs_diff = cu.td0_policy_evaluation(max_cost_policy, 1, max_cost_value)
-    cu.plot_td_diff(max_diff, s0_abs_diff, r"{\alpha}_{1}=1/num\_of\_visits(s), TD(0)")
-    max_diff, s0_abs_diff = cu.td0_policy_evaluation(max_cost_policy, 2, max_cost_value)
-    cu.plot_td_diff(max_diff, s0_abs_diff, r"{\alpha}_{2}=0.01, TD(0)")
-    max_diff, s0_abs_diff = cu.td0_policy_evaluation(max_cost_policy, 3, max_cost_value)
-    cu.plot_td_diff(max_diff, s0_abs_diff, r"{\alpha}_{3}=10/(100+num\_of\_visits(s)), TD(0)")
+    td0_iterations = 10000
+    max_diff, s0_abs_diff = cu.td0_policy_evaluation(max_cost_policy, 1, max_cost_value, td0_iterations)
+    cu.plot_diff(max_diff, s0_abs_diff, r"{\alpha}_{1}=1/num\_of\_visits(s), TD(0)")
+    max_diff, s0_abs_diff = cu.td0_policy_evaluation(max_cost_policy, 2, max_cost_value, td0_iterations)
+    cu.plot_diff(max_diff, s0_abs_diff, r"{\alpha}_{2}=0.01, TD(0)")
+    max_diff, s0_abs_diff = cu.td0_policy_evaluation(max_cost_policy, 3, max_cost_value, td0_iterations)
+    cu.plot_diff(max_diff, s0_abs_diff, r"{\alpha}_{3}=10/(100+num\_of\_visits(s)), TD(0)")
     #"""
 
+    #"""
     # h.
     avg_n = 20
-    td_iterations = 10000
+    td_iterations = 1000
     step_size_type = 3
     _lambda = 0.1
     avg_max_diff, avg_s0_abs_diff = \
         cu.td_lambda_policy_evaluation_avg(max_cost_policy, step_size_type, max_cost_value, _lambda, td_iterations, avg_n)
-    cu.plot_td_diff(avg_max_diff, avg_s0_abs_diff, r"{\alpha}_{3}=10/(100+num\_of\_visits(s)), TD({\lambda}=0.1)")
+    cu.plot_diff(avg_max_diff, avg_s0_abs_diff, r"{\alpha}_{3}=10/(100+num\_of\_visits(s)), TD({\lambda}=0.1)")
     _lambda = 0.5
     avg_max_diff, avg_s0_abs_diff = \
         cu.td_lambda_policy_evaluation_avg(max_cost_policy, step_size_type, max_cost_value, _lambda, td_iterations, avg_n)
-    cu.plot_td_diff(avg_max_diff, avg_s0_abs_diff, r"{\alpha}_{3}=10/(100+num\_of\_visits(s)), TD({\lambda}=0.5)")
+    cu.plot_diff(avg_max_diff, avg_s0_abs_diff, r"{\alpha}_{3}=10/(100+num\_of\_visits(s)), TD({\lambda}=0.5)")
     _lambda = 0.9
     avg_max_diff, avg_s0_abs_diff = \
         cu.td_lambda_policy_evaluation_avg(max_cost_policy, step_size_type, max_cost_value, _lambda, td_iterations, avg_n)
-    cu.plot_td_diff(avg_max_diff, avg_s0_abs_diff, r"{\alpha}_{3}=10/(100+num\_of\_visits(s)), TD({\lambda}=0.9)")
+    cu.plot_diff(avg_max_diff, avg_s0_abs_diff, r"{\alpha}_{3}=10/(100+num\_of\_visits(s)), TD({\lambda}=0.9)")
+    #"""
+
+    # i.
+    q_iterations = 10000
+    step_size_type = 1
+    #q_max_diff, q_s0_abs_diff = cu.q_learning(step_size_type, optimal_policy_value, q_iterations)
+    #cu.plot_diff(q_max_diff, q_s0_abs_diff, r"{\alpha}_{1}=1/num\_of\_visits(s), Q learning")
 
     plt.show()
