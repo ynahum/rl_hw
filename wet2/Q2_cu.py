@@ -12,9 +12,11 @@ class CURuleSolution:
         self.probs = probs
         self.cu = np.multiply(costs, probs)
         self.states_costs = np.zeros(self.states_size)
+        self.states_valid_actions = []
         self.gamma = gamma
         for i in range(self.states_size):
             self.states_costs[i] = self.calc_state_cost(i)
+            self.states_valid_actions.append(self.calc_state_valid_actions(i))
 
     def calc_state_cost(self, state):
         s_cost = 0
@@ -23,6 +25,14 @@ class CURuleSolution:
             if is_lit:
                 s_cost += self.costs[i]
         return s_cost
+
+    def calc_state_valid_actions(self, state):
+        state_actions = []
+        for i in range(self.N):
+            is_lit = state & (1 << i)
+            if is_lit:
+                state_actions.append(i)
+        return state_actions
 
     def print(self):
         print("N={0}".format(self.N))
@@ -35,11 +45,7 @@ class CURuleSolution:
         return self.states_size
 
     def is_legal_act(self, state, action):
-        for i in range(self.N):
-            possible_action = state & (1 << i)
-            if possible_action and i == action:
-                return True
-        return False
+        return action in self.states_valid_actions[state]
 
     def get_next_state(self, state, action):
         next_state = state & ((~(1 << action)) & (self.states_size -1))
@@ -197,6 +203,15 @@ class CURuleSolution:
             next_state = self.get_next_state(current_state, action)
         return next_state
 
+    def calc_alpha(self, step_size_type, state_visits):
+        if step_size_type == 1:
+            alpha = 1 / state_visits
+        elif step_size_type == 2:
+            alpha = 0.01
+        else:
+            alpha = 10 / (state_visits + 100)
+        return alpha
+
     def td0_policy_evaluation(self, policy, step_size_type, v_ref, n_iterations):
         v_td = np.zeros(self.states_size)
         states_visits = np.zeros(self.states_size)
@@ -215,12 +230,7 @@ class CURuleSolution:
             while state != 0:
                 states_visits[state] += 1
 
-                if step_size_type == 1:
-                    alpha = 1/states_visits[state]
-                elif step_size_type == 2:
-                    alpha = 0.01
-                else:
-                    alpha = 10/(states_visits[state] + 100)
+                alpha = self.calc_alpha(step_size_type, states_visits[state])
 
                 action = policy[state]
                 cost = self.states_costs[state]
@@ -250,13 +260,7 @@ class CURuleSolution:
             state = random.randint(1, self.states_size - 1)
             while state != 0:
                 states_visits[state] += 1
-
-                if type_of_step_size == 1:
-                    alpha = 1/states_visits[state]
-                elif type_of_step_size == 2:
-                    alpha = 0.01
-                else:
-                    alpha = 10/(states_visits[state] + 100)
+                alpha = self.calc_alpha(step_size_type, states_visits[state])
 
                 action = policy[state]
                 cost = self.states_costs[state]
@@ -283,18 +287,17 @@ class CURuleSolution:
         avg_s0_abs_diff = sum_s0_abs_diff / avg_size
         return avg_max_diff, avg_s0_abs_diff
 
-    def egreedy_policy(self, policy, state, e_prob):
+    def egreedy_policy(self, q, state, e_prob):
+        action = np.argmin(q[state])
         rand = random.uniform(0, 1)
-        action = policy[state]
         if(rand < e_prob):
-            action += random.randint(1, self.N)
-            action %= self.N
+            action = random.choice(self.states_valid_actions)
         return action
 
     def q_learning(self, step_size_type, opt_v, n_iterations, e_greedy_prob = 0.1):
 
         # init the q table |S| x |A| to zeros
-        q = np.zeros(self.states_size, self.N)
+        q = np.zeros((self.states_size, self.N))
         states_visits = np.zeros(self.states_size)
 
         # to return max of differences to value reference
@@ -303,37 +306,31 @@ class CURuleSolution:
 
         for i in range(n_iterations):
 
+            # we start simulating from a random start state
+            state = random.randint(1, self.states_size - 1)
+
+            while state != 0:
+                states_visits[state] += 1
+                alpha = self.calc_alpha(step_size_type, states_visits[state])
+
+                action = self.egreedy_policy(q, state, e_greedy_prob)
+                cost = self.states_costs[state]
+                next_state = self.simulator(state, action)
+
+                q_min_next_state = q[next_state].min()
+                delta = cost + self.gamma*q_min_next_state - q[state][action]
+                q[state][action] = q[state][action] + alpha * delta
+
+                state = next_state
+
             # calc the current policy (for simulation) of Q estimation
             policy_q_greedy = np.argmin(q, axis=1)
             v_policy_q_greedy = self.fixed_policy_value_iteration(policy_q_greedy)
             max_diff[i] = np.max(opt_v - v_policy_q_greedy)
 
             # calculate s0 value on Q estimation
-            s0_q_value = q[self.s0].min(q, axis=1)
+            s0_q_value = q[self.s0].min()
             s0_abs_diff[i] = np.abs(opt_v[self.s0] - s0_q_value)
-
-            # we start simulating from a random start state
-            state = random.randint(1, self.states_size - 1)
-
-            while state != 0:
-                states_visits[state] += 1
-
-                if step_size_type == 1:
-                    alpha = 1/states_visits[state]
-                elif step_size_type == 2:
-                    alpha = 0.01
-                else:
-                    alpha = 10/(states_visits[state] + 100)
-
-                action = self.egreedy_policy(policy_q_greedy, state, e_greedy_prob)
-                cost = self.states_costs[state]
-                next_state = self.simulator(state, action)
-
-                q_min_next_state = q[next_state].min(q, axis=1)
-                delta = cost + self.gamma*q_min_next_state - q[state][action]
-                q[state][action] = q[state][action] + alpha * delta
-
-                state = next_state
 
         return max_diff, s0_abs_diff
 
@@ -367,16 +364,20 @@ if __name__ == "__main__":
 
     # c.
     cu.plot_policy(max_cost_policy)
+    #"""
 
     # d.
     policy_iteration_optimal_policy, policy_iteration_value_collection = \
         cu.policy_iteration_algo(max_cost_policy)
+    #"""
     cu.plot_first_stage_values(policy_iteration_value_collection)
     # print(policy_iteration_optimal_policy)
+    #"""
 
     # e.
     optimal_policy_value = cu.fixed_policy_value_iteration(policy_iteration_optimal_policy)
     #print(optimal_policy_value)
+    #"""
     cu.plot_value_vs_optimal_value(max_cost_value, optimal_policy_value, "c")
     max_cu_policy = cu.create_cu_greedy_policy()
     max_cu_policy_value = cu.fixed_policy_value_iteration(max_cu_policy)
