@@ -287,22 +287,36 @@ class CURuleSolution:
         avg_s0_abs_diff = sum_s0_abs_diff / avg_size
         return avg_max_diff, avg_s0_abs_diff
 
-    def egreedy_policy(self, q, state, e_prob):
-        action = np.argmin(q[state])
+    def egreedy_action(self, q, state, e_prob):
+        state_valid_actions = self.states_valid_actions[state]
+        valid_actions_q = np.take(q[state], state_valid_actions)
+        greedy_from_valid_actions = np.argmin(valid_actions_q)
+        action = state_valid_actions[greedy_from_valid_actions]
         rand = random.uniform(0, 1)
-        if(rand < e_prob):
-            action = random.choice(self.states_valid_actions)
+        if len(state_valid_actions) > 1 and rand < e_prob:
+            other_actions = list(filter(lambda a: a != action, state_valid_actions))
+            action = random.choice(other_actions)
+        if not self.is_legal_act(state, action):
+            print("illegal action {0} at state {1}".format(action, state))
+            return
         return action
 
-    def q_learning(self, step_size_type, opt_v, n_iterations, e_greedy_prob = 0.1):
+    def calc_q_greedy_policy(self, q):
+        greedy_policy = np.zeros(self.states_size, dtype=int)
+        for state in range(1, self.states_size):
+            greedy_policy[state] = self.egreedy_action(q, state, 0)
+        #print("greedy policy {0}".format(greedy_policy))
+        return greedy_policy
+
+    def q_learning(self, step_size_type, opt_v, n_iterations, e_greedy_prob=0.1, plot_sample_rate=100):
 
         # init the q table |S| x |A| to zeros
         q = np.zeros((self.states_size, self.N))
         states_visits = np.zeros(self.states_size)
 
         # to return max of differences to value reference
-        max_diff = np.zeros(n_iterations)
-        s0_abs_diff = np.zeros(n_iterations)
+        max_diff = np.zeros(int(n_iterations/plot_sample_rate))
+        s0_abs_diff = np.zeros(int(n_iterations/plot_sample_rate))
 
         for i in range(n_iterations):
 
@@ -313,7 +327,7 @@ class CURuleSolution:
                 states_visits[state] += 1
                 alpha = self.calc_alpha(step_size_type, states_visits[state])
 
-                action = self.egreedy_policy(q, state, e_greedy_prob)
+                action = self.egreedy_action(q, state, e_greedy_prob)
                 cost = self.states_costs[state]
                 next_state = self.simulator(state, action)
 
@@ -323,16 +337,19 @@ class CURuleSolution:
 
                 state = next_state
 
-            # calc the current policy (for simulation) of Q estimation
-            policy_q_greedy = np.argmin(q, axis=1)
-            v_policy_q_greedy = self.fixed_policy_value_iteration(policy_q_greedy)
-            max_diff[i] = np.max(opt_v - v_policy_q_greedy)
+            if i%plot_sample_rate == 0:
+                # calc the current policy (for simulation) of Q estimation
+                policy_q_greedy = self.calc_q_greedy_policy(q)
+                v_policy_q_greedy = self.fixed_policy_value_iteration(policy_q_greedy)
+                index = int(i/plot_sample_rate)
+                max_diff[index] = np.max(opt_v - v_policy_q_greedy)
 
-            # calculate s0 value on Q estimation
-            s0_q_value = q[self.s0].min()
-            s0_abs_diff[i] = np.abs(opt_v[self.s0] - s0_q_value)
+                # calculate s0 value on Q estimation
+                s0_q_value = q[self.s0].min()
+                s0_abs_diff[index] = np.abs(opt_v[self.s0] - s0_q_value)
 
-        return max_diff, s0_abs_diff
+        q_policy = self.calc_q_greedy_policy(q)
+        return max_diff, s0_abs_diff, q_policy
 
 
     def plot_diff(self, max_diff, s0_abs_diff, changing_descr=""):
@@ -341,14 +358,31 @@ class CURuleSolution:
         ax1.set_ylabel("Infinity norm (max)")
         plt.grid()
         plt.plot(max_diff)
-        title = r"${||V^{{\pi}_{c}}-V_{TD0}||}_{\infty}, "+changing_descr+"$"
+        title = r"${||V^{{\pi}_{c}}-V_{TD}||}_{\infty}, "+changing_descr+"$"
         plt.title(title)
         ax2 = plt.subplot(2, 1, 2)
         ax2.set_xlabel("simulation iterations")
         ax2.set_ylabel("start state error")
         plt.grid()
         plt.plot(s0_abs_diff)
-        title = r"${|V^{{\pi}_{c}}(s_0)-V_{TD0}(s_0)|}, "+changing_descr+"$"
+        title = r"${|V^{{\pi}_{c}}(s_0)-V_{TD}(s_0)|}, "+changing_descr+"$"
+        plt.title(title)
+        plt.show(block=False)
+
+    def plot_q_diff(self, max_diff, s0_abs_diff, changing_descr=""):
+        plt.figure(figsize=(8, 8))
+        ax1 = plt.subplot(2, 1, 1)
+        ax1.set_ylabel("Infinity norm (max)")
+        plt.grid()
+        plt.plot(max_diff)
+        title = r"${||V^{*}-V^{{\pi}_{Q}}||}_{\infty}, "+changing_descr+"$"
+        plt.title(title)
+        ax2 = plt.subplot(2, 1, 2)
+        ax2.set_xlabel("simulation iterations")
+        ax2.set_ylabel("start state error")
+        plt.grid()
+        plt.plot(s0_abs_diff)
+        title = r"${|V^{*}(s_0)-{argmin}_{\alpha}Q(s_0,{\alpha})|}, "+changing_descr+"$"
         plt.title(title)
         plt.show(block=False)
 
@@ -422,8 +456,10 @@ if __name__ == "__main__":
 
     # i.
     q_iterations = 10000
+    plot_sample_rate = 100
     step_size_type = 1
-    #q_max_diff, q_s0_abs_diff = cu.q_learning(step_size_type, optimal_policy_value, q_iterations)
-    #cu.plot_diff(q_max_diff, q_s0_abs_diff, r"{\alpha}_{1}=1/num\_of\_visits(s), Q learning")
+    q_max_diff, q_s0_abs_diff, q_policy = cu.q_learning(step_size_type, optimal_policy_value, q_iterations, plot_sample_rate)
+    cu.plot_q_diff(q_max_diff, q_s0_abs_diff, r"{\alpha}_{1}=1/num\_of\_visits(s), Q learning")
+    print("Q policy {0}".format(q_policy))
 
     plt.show()
