@@ -59,10 +59,10 @@ class BlackJackSolution:
     def ValueForStick(self, X, Y):
         ValStick = 0
         pYtot = self.YProbTot[Y]
-        for Ytot in range (17, 21):
+        for Ytot in range(17, 22):
             if Ytot > X: #Dealer Reached Higher result than Player
                 ValStick -= pYtot[Ytot]
-            elif Ytot < X: #Dealer Reached Lower result than Player
+            if Ytot < X: #Dealer Reached Lower result than Player
                 ValStick += pYtot[Ytot]
         ValStick += pYtot[22] #Dealer exceeeded 21
         return ValStick
@@ -70,12 +70,12 @@ class BlackJackSolution:
     def ValueIteration(self, NumOfIterations):
         Value = np.zeros([18,10]) #init values
         for n in range(NumOfIterations):
-            ValueNthIteration = Value
+            ValueNthIteration = Value.copy()
             for X in range(4,22):
                 for Y in range(2,12):
                     ValueHit = self.ValueForHit(X, Y, ValueNthIteration)
                     ValueStick = self.ValueForStick(X, Y)
-                    if(ValueHit > ValueStick):
+                    if(ValueHit >= ValueStick):
                         Value[X-4, Y-2] = ValueHit
                     else:
                         Value[X-4, Y-2] = ValueStick
@@ -87,7 +87,7 @@ class BlackJackSolution:
             for X in range(4, 22):
                 ValueHit = self.ValueForHit(X, Y, Value)
                 ValueStick = self.ValueForStick(X, Y)
-                if (ValueHit > ValueStick):
+                if (ValueHit >= ValueStick):
                     Policy[X - 4, Y - 2] = 1 # 1-hit
                 else:
                     Policy[X - 4, Y - 2] = 0 # 0-stick
@@ -157,8 +157,3 @@ if __name__ == "__main__":
     # Derive Policy
     Policy = b.GreedyPolicy(Value)
     b.PlotPolicy(Policy)
-
-
-
-
-
