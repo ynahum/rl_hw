@@ -311,7 +311,7 @@ class CURuleSolution:
         #print("greedy policy {0}".format(greedy_policy))
         return greedy_policy
 
-    def q_learning(self, step_size_type, opt_v, n_iterations, e_greedy_prob=0.1, plot_sample_rate=100):
+    def q_learning(self, step_size_type, opt_v, n_iterations, plot_sample_rate, e_greedy_prob=0.1):
 
         # init the q table |S| x |A| to zeros
         q = np.zeros((self.states_size, self.N))
@@ -336,8 +336,10 @@ class CURuleSolution:
                 action = self.egreedy_action(q, state, e_greedy_prob)
                 cost = self.states_costs[state]
                 next_state = self.simulator(state, action)
-
-                q_min_next_state = np.min(q[next_state])
+                next_state_valid_actions = self.states_valid_actions[next_state]
+                q_min_next_state = 0
+                if next_state != 0:
+                    q_min_next_state = np.min(np.take(q[next_state], next_state_valid_actions))
                 delta = cost + self.gamma*q_min_next_state - q[state][action]
                 q[state][action] = q[state][action] + alpha * delta
 
@@ -448,25 +450,27 @@ if __name__ == "__main__":
         cu.td_lambda_policy_evaluation_avg(max_cost_policy, step_size_type, max_cost_value, _lambda, td_iterations, avg_n)
     cu.plot_diff(avg_max_diff, avg_s0_abs_diff, r"{\alpha}_{3}=10/(100+num\_of\_visits(s)), TD({\lambda}=0.9)")
 
+
     # i.
     q_iterations = 100000
     plot_sample_rate = 100
     step_size_type = 1
-    q_max_diff, q_s0_abs_diff, q_policy = cu.q_learning(step_size_type, optimal_policy_value, q_iterations)
+    q_max_diff, q_s0_abs_diff, q_policy = cu.q_learning(step_size_type, optimal_policy_value, q_iterations, plot_sample_rate)
     cu.plot_q_diff(q_max_diff, q_s0_abs_diff, r"{\alpha}_{1}=1/num\_of\_visits(s), Q\ learning, e\_greedy=0.1")
     print("Q policy:       {0}".format(q_policy))
     step_size_type = 2
-    q_max_diff, q_s0_abs_diff, q_policy = cu.q_learning(step_size_type, optimal_policy_value, q_iterations)
+    q_max_diff, q_s0_abs_diff, q_policy = cu.q_learning(step_size_type, optimal_policy_value, q_iterations, plot_sample_rate)
     cu.plot_q_diff(q_max_diff, q_s0_abs_diff, r"{\alpha}_{2}=0.01, Q\ learning, e\_greedy=0.1")
     print("Q policy:       {0}".format(q_policy))
     step_size_type = 3
-    q_max_diff, q_s0_abs_diff, q_policy = cu.q_learning(step_size_type, optimal_policy_value, q_iterations)
+    q_max_diff, q_s0_abs_diff, q_policy = cu.q_learning(step_size_type, optimal_policy_value, q_iterations, plot_sample_rate)
     cu.plot_q_diff(q_max_diff, q_s0_abs_diff, r"{\alpha}_{3}=10/(100+num\_of\_visits(s)), Q\ learning, e\_greedy=0.1")
     print("Q policy:       {0}".format(q_policy))
+
 
     # j.
     step_size_type = 3
     q_max_diff, q_s0_abs_diff, q_policy = \
-        cu.q_learning(step_size_type, optimal_policy_value, q_iterations, e_greedy_prob=0.01)
+        cu.q_learning(step_size_type, optimal_policy_value, q_iterations, plot_sample_rate, e_greedy_prob=0.01)
     cu.plot_q_diff(q_max_diff, q_s0_abs_diff, r"{\alpha}_{3}=10/(100+num\_of\_visits(s)), Q\ learning, e\_greedy=0.01", plot_block=True)
     print("Q policy:       {0}".format(q_policy))
