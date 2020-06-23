@@ -19,14 +19,18 @@ def compute_lspi_iteration(encoded_states, encoded_next_states, actions, rewards
 
     num_of_samples_used = 0
     for i in range(len(encoded_states)):
+        state = encoded_states[i]
         action = actions[i]
         reward = rewards[i]
+        next_state = encoded_next_states[i]
         next_max_action = next_state_max_actions[i]
 
-        if reward != 0:
-            d += reward * state_action_features[i][action]
-        C += np.outer(state_action_features[i][action],
-                      (state_action_features[i][action] - gamma * next_state_action_features[i][next_max_action]))
+        d += reward * state_action_features[i][action]
+        phi = np.array(state_action_features[i][action])
+        phi_T = phi.transpose()
+        phi_next_T = np.array(next_state_action_features[i][next_max_action]).transpose()
+        C += np.dot(phi, (phi_T - (gamma * phi_next_T)))
+
         if done_flags[i]:
             num_of_samples_used = i+1
             break
@@ -40,7 +44,7 @@ if __name__ == '__main__':
     samples_to_collect = 100000
     # samples_to_collect = 150000
     # samples_to_collect = 10000
-    number_of_kernels_per_dim = [12, 10]
+    number_of_kernels_per_dim = [2, 2]
     gamma = 0.99
     w_updates = 100
     evaluation_number_of_games = 10
@@ -58,15 +62,15 @@ if __name__ == '__main__':
     # standardize data
     data_transformer = DataTransformer()
     data_transformer.set_using_states(np.concatenate((states, next_states), axis=0))
-    states = data_transformer.transform_states(states)
-    next_states = data_transformer.transform_states(next_states)
+    #states = data_transformer.transform_states(states)
+    #next_states = data_transformer.transform_states(next_states)
     # process with radial basis functions
     feature_extractor = RadialBasisFunctionExtractor(number_of_kernels_per_dim)
     # encode all states:
-    encoded_states = feature_extractor.encode_states_with_radial_basis_functions(states)
-    encoded_next_states = feature_extractor.encode_states_with_radial_basis_functions(next_states)
+    encoded_states = states #feature_extractor.encode_states_with_radial_basis_functions(states)
+    encoded_next_states = next_states #feature_extractor.encode_states_with_radial_basis_functions(next_states)
     # set a new linear policy
-    linear_policy = LinearPolicy(feature_extractor.get_number_of_features(), 3, True)
+    linear_policy = LinearPolicy(2, 3, False)#feature_extractor.get_number_of_features(), 3, False)
     # but set the weights as random
     linear_policy.set_w(np.random.uniform(size=linear_policy.w.shape))
     # start an object that evaluates the success rate over time
@@ -74,6 +78,19 @@ if __name__ == '__main__':
     for lspi_iteration in range(w_updates):
         print(f'starting lspi iteration {lspi_iteration}')
 
+        """
+        for debug
+        """
+        #"""
+        end_state = 3
+        encoded_states = encoded_states[:end_state,:]
+        encoded_next_states = encoded_next_states[:end_state,:]
+        rewards = rewards[:end_state]
+        done_flags = done_flags[:end_state]
+        done_flags[end_state-1] = True
+        rewards[end_state-1] = 1.
+        actions = actions[:end_state]
+        #"""
         new_w = compute_lspi_iteration(
             encoded_states, encoded_next_states, actions, rewards, done_flags, linear_policy, gamma
         )
