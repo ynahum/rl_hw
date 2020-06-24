@@ -1,2 +1,16 @@
------Part 2 - Preliminary: Mountain Car Problem and Feature Engineering:-----
-Code for Question 2.2 - Ploting of Descrete state space features in - "PreliminarySolution.py"
+-------------------------------------------------------------------------------
+------Part 2 - Preliminary: Mountain Car Problem and Feature Engineering:------
+-------------------------------------------------------------------------------
+"PreliminarySolution.py" - run main for-
+-> Question 2.2 (Ploting of Descrete state space feature)
+
+-------------------------------------------------------------------------------
+----------------------------Part 4 - Q-Learning:-------------------------------
+-------------------------------------------------------------------------------
+ "QLearningSolution.py" - run main for-
+ -> Question 4.2 (Measure Performance by of Q function by method ) implemented by method "PerformanceOfGreedyPolicy".
+ -> Question 4.3 (Solving Mountain Car Problem by Online Q-Learning ) implemented by method "Qlearning". 
+    + Added implementation for method "update_theta" in "q_learn_mountain_car.py".
+ -> Question 4.4
+ -> Question 4.5
+ 
