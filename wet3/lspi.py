@@ -43,65 +43,94 @@ def plot_avg_performance_vs_iterations(success_rate_list, seed_num, block=False)
     plt.title(title)
     plt.show(block)
 
+def plot_success_rate_vs_samples_amount(greedy_success_rates, samples_count_list, block=False):
+    plt.figure(figsize=(7, 7))
+    ax = plt.axes()
+    ax.plot(samples_count_list, greedy_success_rates)
+    ax.set_ylabel("Success rate")
+    ax.set_xlabel("Samples collected amount")
+    plt.xticks(samples_count_list)
+    plt.stem(greedy_success_rates, use_line_collection=True)
+    plt.grid()
+    title = "Success rate vs amount of samples collected for training"
+    plt.title(title)
+    plt.show(block)
+
 if __name__ == '__main__':
-    samples_to_collect = 100000
-    # samples_to_collect = 150000
+    #samples_to_collect = 100000
+    #samples_to_collect = 150000
     # samples_to_collect = 10000
+    #samples_to_collect_list = [100000]
+    samples_to_collect_list = [100000, 150000, 10000]
+    seeds = [345]
+    #seeds = [123, 234, 345]
+    seeds = [345]
     number_of_kernels_per_dim = [12, 10]
     gamma = 0.99
-    w_updates = 100
+    #w_updates = 100
+    # as requested in section 6 for max of 20 iterations
+    w_updates = 20
     num_of_random_start_states = 50
     evaluation_number_of_games = 10
     evaluation_max_steps_per_game = 1000
 
-    #seeds = [123, 234, 345]
-    seeds = [123]
     for seed_iteration in range(len(seeds)):
         np.random.seed(seeds[seed_iteration])
 
-        env = MountainCarWithResetEnv()
-        # collect data
-        states, actions, rewards, next_states, done_flags = DataCollector(env).collect_data(samples_to_collect)
-        # get data success rate
-        data_success_rate = np.sum(rewards) / len(rewards)
-        print(f'success rate {data_success_rate}')
-        # standardize data
-        data_transformer = DataTransformer()
-        data_transformer.set_using_states(np.concatenate((states, next_states), axis=0))
-        states = data_transformer.transform_states(states)
-        next_states = data_transformer.transform_states(next_states)
-        # process with radial basis functions
-        feature_extractor = RadialBasisFunctionExtractor(number_of_kernels_per_dim)
-        # encode all states:
-        encoded_states = feature_extractor.encode_states_with_radial_basis_functions(states)
-        encoded_next_states = feature_extractor.encode_states_with_radial_basis_functions(next_states)
-        # set a new linear policy
-        linear_policy = LinearPolicy(feature_extractor.get_number_of_features(), 3, True)
-        # but set the weights as random
-        linear_policy.set_w(np.random.uniform(size=linear_policy.w.shape))
-        # start an object that evaluates the success rate over time
-        evaluator = GamePlayer(env, data_transformer, feature_extractor, linear_policy)
-        random_start_states = \
-            [[np.random.uniform(env.min_position, env.max_position), 0] for _ in range(num_of_random_start_states)]
-        success_rate_list = []
-        for lspi_iteration in range(w_updates):
-            print(f'starting lspi iteration {lspi_iteration}')
+        greedy_success_rate_per_samples_count = []
+        for samples_to_collect_iteration in range(len(samples_to_collect_list)):
 
-            new_w = compute_lspi_iteration(
-                encoded_states, encoded_next_states, actions, rewards, done_flags, linear_policy, gamma
-            )
+            env = MountainCarWithResetEnv()
 
-            # evaluate
-            all_results = \
-                [evaluator.play_game(evaluation_max_steps_per_game, start_state=state) for state in random_start_states]
-            success_rate = np.mean(all_results)
-            success_rate_list.append(success_rate)
+            # collect data
+            states, actions, rewards, next_states, done_flags = \
+                DataCollector(env).collect_data(samples_to_collect_list[samples_to_collect_iteration])
 
-            norm_diff = linear_policy.set_w(new_w)
-            if norm_diff < 0.00001:
-                break
-        print('done lspi')
-        plot_avg_performance_vs_iterations(success_rate_list, seeds[seed_iteration], seed_iteration == (len(seeds)-1))
+            # get data success rate
+            data_success_rate = np.sum(rewards) / len(rewards)
+            print(f'success rate {data_success_rate}')
+            # standardize data
+            data_transformer = DataTransformer()
+            data_transformer.set_using_states(np.concatenate((states, next_states), axis=0))
+            states = data_transformer.transform_states(states)
+            next_states = data_transformer.transform_states(next_states)
+            # process with radial basis functions
+            feature_extractor = RadialBasisFunctionExtractor(number_of_kernels_per_dim)
+            # encode all states:
+            encoded_states = feature_extractor.encode_states_with_radial_basis_functions(states)
+            encoded_next_states = feature_extractor.encode_states_with_radial_basis_functions(next_states)
+            # set a new linear policy
+            linear_policy = LinearPolicy(feature_extractor.get_number_of_features(), 3, True)
+            # but set the weights as random
+            linear_policy.set_w(np.random.uniform(size=linear_policy.w.shape))
+            # start an object that evaluates the success rate over time
+            evaluator = GamePlayer(env, data_transformer, feature_extractor, linear_policy)
+            random_start_states = \
+                [[np.random.uniform(env.min_position, env.max_position), 0] for _ in range(num_of_random_start_states)]
+            success_rate_list = []
+            for lspi_iteration in range(w_updates):
+                print(f'starting lspi iteration {lspi_iteration}')
+
+                new_w = compute_lspi_iteration(
+                    encoded_states, encoded_next_states, actions, rewards, done_flags, linear_policy, gamma
+                )
+
+                # evaluate
+                all_results = \
+                    [evaluator.play_game(evaluation_max_steps_per_game, start_state=state) for state in random_start_states]
+                success_rate = np.mean(all_results)
+                success_rate_list.append(success_rate)
+
+                norm_diff = linear_policy.set_w(new_w)
+                if norm_diff < 0.00001:
+                    break
+            print('done lspi')
+            greedy_success_rate_per_samples_count.append(success_rate_list[-1])
+            plot_avg_performance_vs_iterations(
+                success_rate_list, seeds[seed_iteration], seed_iteration == (len(seeds)-1))
+        plot_success_rate_vs_samples_amount(
+            greedy_success_rate_per_samples_count, samples_to_collect_list,
+            samples_to_collect_iteration == (len(samples_to_collect_list)-1))
     evaluator.play_games(evaluation_number_of_games, evaluation_max_steps_per_game)
     evaluator.play_game(evaluation_max_steps_per_game, render=True)
 
