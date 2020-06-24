@@ -40,12 +40,12 @@ class Solver:
     def get_all_q_vals(self, features):
         all_vals = np.zeros(self._actions)
         for a in range(self._actions):
-            all_vals[a] = solver.get_q_val(features, a)
+            all_vals[a] = self.get_q_val(features, a)
         return all_vals
 
     def get_max_action(self, state):
-        sparse_features = solver.get_features(state)
-        q_vals = solver.get_all_q_vals(sparse_features)
+        sparse_features = self.get_features(state)
+        q_vals = self.get_all_q_vals(sparse_features)
         return np.argmax(q_vals)
 
     def get_state_action_features(self, state, action):
@@ -55,10 +55,31 @@ class Solver:
         return all_features
 
     def update_theta(self, state, action, reward, next_state, done):
-        # compute the new weights and set in self.theta. also return the bellman error (for tracking).
-        assert False, "implement update_theta"
-        return 0.0
+        # compute the new weights and set in self.theta. also return the bellman error (for tracking)
 
+        # Calc Q(s(n),a(n))
+        features_n = self.get_features(state)
+        Qn = self.get_q_val(features_n,action)
+
+        # Calc max{Q(s(n+1),a)} over a
+        max_a = self.get_max_action(next_state)
+        features_np1 = self.get_features(next_state)
+        maxQ = self.get_q_val(features_np1, max_a)
+
+        alpha = self.learning_rate
+
+        # Update Theta :
+        # Theta(n) = Theta(n) + alpha*[r(s(n),a(n))+gamma*max{Q(s(n+1),a)}-Q(s(n),a(n))]*Grad(Q(s,a,theta))
+        # For terminal state s(n) -  Theta(n) = Theta(n) + alpha*[r(s(n),a(n))-Q(s(n),a(n))]*Grad(Q(s,a,theta))
+        self.theta = self.theta + alpha*(reward+(not done)*(self.gamma)*maxQ-Qn)*self.get_state_action_features(state,action)
+
+        # Return Bellman Error - |T(V)-V| = |V(s(n+1))-V(s(n))| = |max{(s(n+1),a}-max{(s(n),a}|
+        return abs(maxQ-Qn)
+
+    def PerformanceOfGreedyPolicy(self,env,max_steps=200):
+        test_gains = [run_episode(env, solver, is_train=False, epsilon=0.)[0] for _ in range(10)]
+        test_success = [i>-max_steps for i in test_gains]
+        return np.mean(test_success)
 
 def modify_reward(reward):
     reward -= 1
