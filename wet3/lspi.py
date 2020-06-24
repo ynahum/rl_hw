@@ -10,6 +10,7 @@ from game_player import GamePlayer
 
 def compute_lspi_iteration(encoded_states, encoded_next_states, actions, rewards, done_flags, linear_policy, gamma):
 
+    num_of_samples = len(encoded_states)
     state_action_features = linear_policy.get_q_features(encoded_states, actions)
     next_state_max_actions = linear_policy.get_max_action(encoded_next_states)
     next_state_action_features = linear_policy.get_q_features(encoded_next_states, next_state_max_actions)
@@ -17,14 +18,16 @@ def compute_lspi_iteration(encoded_states, encoded_next_states, actions, rewards
     d = np.zeros((phi_vec_size, 1))
     C = np.zeros((phi_vec_size, phi_vec_size))
 
-    for i in range(len(encoded_states)):
+    for i in range(num_of_samples):
         phi = np.reshape(state_action_features[i], (phi_vec_size, 1))
-        d += rewards[i] * phi
+        if rewards[i] != 0:
+            d += rewards[i] * phi
         phi_next = np.reshape(next_state_action_features[i], (phi_vec_size, 1))
-        if not done_flags[i]:
-            C += np.dot(phi, (phi.T - (gamma * phi_next.T)))
+        C += np.dot(phi, (phi.T - ((1 - done_flags[i]) * gamma * phi_next.T)))
 
-    next_w = np.dot(np.linalg.pinv(C), d)
+    d /= num_of_samples
+    C /= num_of_samples
+    next_w = np.dot(np.linalg.inv(C), d)
     return next_w
 
 
@@ -38,8 +41,8 @@ if __name__ == '__main__':
     evaluation_number_of_games = 10
     evaluation_max_steps_per_game = 1000
 
-    np.random.seed(123)
-    #np.random.seed(234)
+    #np.random.seed(123)
+    np.random.seed(234)
 
     env = MountainCarWithResetEnv()
     # collect data
