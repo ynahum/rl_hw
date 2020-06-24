@@ -50,7 +50,6 @@ def plot_success_rate_vs_samples_amount(greedy_success_rates, samples_count_list
     ax.set_ylabel("Success rate")
     ax.set_xlabel("Samples collected amount")
     plt.xticks(samples_count_list)
-    plt.stem(greedy_success_rates, use_line_collection=True)
     plt.grid()
     title = "Success rate vs amount of samples collected for training"
     plt.title(title)
@@ -61,7 +60,7 @@ if __name__ == '__main__':
     #samples_to_collect = 150000
     # samples_to_collect = 10000
     #samples_to_collect_list = [100000]
-    samples_to_collect_list = [100000, 150000, 10000]
+    samples_to_collect_list = [10000, 100000, 150000]
     seeds = [345]
     #seeds = [123, 234, 345]
     seeds = [345]
@@ -127,7 +126,7 @@ if __name__ == '__main__':
             print('done lspi')
             greedy_success_rate_per_samples_count.append(success_rate_list[-1])
             plot_avg_performance_vs_iterations(
-                success_rate_list, seeds[seed_iteration], seed_iteration == (len(seeds)-1))
+                success_rate_list, seeds[seed_iteration], False)#seed_iteration == (len(seeds)-1))
         plot_success_rate_vs_samples_amount(
             greedy_success_rate_per_samples_count, samples_to_collect_list,
             samples_to_collect_iteration == (len(samples_to_collect_list)-1))
