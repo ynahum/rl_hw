@@ -17,22 +17,14 @@ def compute_lspi_iteration(encoded_states, encoded_next_states, actions, rewards
     d = np.zeros((phi_vec_size, 1))
     C = np.zeros((phi_vec_size, phi_vec_size))
 
-    num_of_samples_used = 0
     for i in range(len(encoded_states)):
-        action = actions[i]
-        reward = rewards[i]
-        next_max_action = next_state_max_actions[i]
+        phi = np.reshape(state_action_features[i], (phi_vec_size, 1))
+        d += rewards[i] * phi
+        phi_next = np.reshape(next_state_action_features[i], (phi_vec_size, 1))
+        if not done_flags[i]:
+            C += np.dot(phi, (phi.T - (gamma * phi_next.T)))
 
-        if reward != 0:
-            d += reward * state_action_features[i][action]
-        C += np.outer(state_action_features[i][action],
-                      (state_action_features[i][action] - gamma * next_state_action_features[i][next_max_action]))
-        if done_flags[i]:
-            num_of_samples_used = i+1
-            break
-    d /= num_of_samples_used
-    C /= num_of_samples_used
-    next_w = np.linalg.pinv(C) @ d
+    next_w = np.dot(np.linalg.pinv(C), d)
     return next_w
 
 
@@ -47,7 +39,7 @@ if __name__ == '__main__':
     evaluation_max_steps_per_game = 1000
 
     np.random.seed(123)
-    # np.random.seed(234)
+    #np.random.seed(234)
 
     env = MountainCarWithResetEnv()
     # collect data
