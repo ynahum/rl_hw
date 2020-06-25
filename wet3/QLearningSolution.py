@@ -85,24 +85,61 @@ if __name__ == '__main__':
     print('Success Rate Of Reaching Top - {0}'.format(SuccessRate))
 
     ##----Section 4.3----##
+    # run Q-learning algorithm till reaching solution over different seeds
     start_time = time.time()
-    seed = 123
-    # seed = 234
-    # seed = 345
-    np.random.seed(seed)
-    sol._env.seed(seed)
     num_episodes = 10000
     epsilon = 0.1
+    seeds = [123, 234, 345]
 
-    total_reward, performance, approx_value_bottom, Avg_bellman_error = sol.Qlearning(num_episodes,epsilon,StopWhenFoundSolution=True)
+    for seed in seeds:
+        # Set seed and Re-Initialize Q-func
+        sol = solution(env, Qlearn)
+        np.random.seed(seed)
+        sol._env.seed(seed)
+        # run Q-learning algorithm till reaching solution
+        total_reward, performance, approx_value_bottom, Avg_bellman_error = sol.Qlearning(num_episodes,epsilon,
+                                                                                      StopWhenFoundSolution=True)
+        print("--- elapsed time - {0} seconds ---".format(time.time() - start_time))
+        # Plots
+        sol.Plot2D_overEpisodes(total_reward, 'Total Reward - Seed = {0}'.format(seed))
+        sol.Plot2D_overEpisodes(performance, 'Performance - Seed = {0}'.format(seed), XaxisManipulation=1)
+        sol.Plot2D_overEpisodes(approx_value_bottom, 'Approximate Value at Bottom of Hill - Seed = {0}'.format(seed))
+        sol.Plot2D_overEpisodes(Avg_bellman_error, 'Bellman error - Seed = {0}'.format(seed), XaxisManipulation=2)
+        # run policy
+        run_episode(sol._env, sol._Qlearn, is_train=False, render=True)
+
+    ##----Section 4.4----##
+    # Set seed and Re-Initialize Q-func
+    seed = 123
+    sol = solution(env, Qlearn)
+    np.random.seed(seed)
+    sol._env.seed(seed)
+    # run greedy policy till reaching solution
+    start_time = time.time()
+    total_reward, performance, approx_value_bottom, Avg_bellman_error = sol.Qlearning(num_episodes, epsilon=0,
+                                                                                      StopWhenFoundSolution=True)
     print("--- elapsed time - {0} seconds ---".format(time.time() - start_time))
-
     # Plots
-    sol.Plot2D_overEpisodes(total_reward,'Total Reward',False)
-    sol.Plot2D_overEpisodes(performance, 'Performance',1, False)
-    sol.Plot2D_overEpisodes(approx_value_bottom, 'Approximate Value at Bottom of Hill', False)
-    sol.Plot2D_overEpisodes(Avg_bellman_error,'Bellman error',2,True)
-
+    sol.Plot2D_overEpisodes(total_reward, 'Total Reward - Greedy Policy')
+    sol.Plot2D_overEpisodes(performance, 'Performance - Greedy Policy', XaxisManipulation=1)
+    sol.Plot2D_overEpisodes(approx_value_bottom, 'Approximate Value at Bottom of Hill- Greedy Policy')
+    sol.Plot2D_overEpisodes(Avg_bellman_error, 'Bellman error- Greedy Policy',  XaxisManipulation=2)
+    # run policy
     run_episode(sol._env, sol._Qlearn, is_train=False, render=True)
-
-
+    
+    ##----Section 4.5----##
+    # Exploration - run Q-learning algorithm till reaching solution for different epsilon
+    epsilons = [1.0, 0.75, 0.5, 0.3, 0.01]
+    for eps in epsilons:
+        # Set seed and Re-Initialize Q-func
+        seed = 123
+        sol = solution(env, Qlearn)
+        np.random.seed(seed)
+        sol._env.seed(seed)
+        # run Q-learning algorithm till reaching solution
+        start_time = time.time()
+        total_reward, performance, approx_value_bottom, Avg_bellman_error = sol.Qlearning(num_episodes, eps,
+                                                                                          StopWhenFoundSolution=True)
+        print("--- elapsed time - {0} seconds ---".format(time.time() - start_time))
+        # Plot
+        sol.Plot2D_overEpisodes(total_reward, 'Total Reward - Epsilon = {0}'.format(eps), block=(eps==epsilons[-1]))
