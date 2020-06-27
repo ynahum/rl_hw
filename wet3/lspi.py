@@ -59,11 +59,12 @@ if __name__ == '__main__':
     #samples_to_collect = 100000
     #samples_to_collect = 150000
     # samples_to_collect = 10000
-    #samples_to_collect_list = [100000]
-    samples_to_collect_list = [10000, 100000, 150000]
+    plot_avg_performance = True
+    plot_success_rate_vs_amount_of_samples = True
+    samples_to_collect_list = [100000]
+    #samples_to_collect_list = [10000, 100000, 150000]
     seeds = [345]
     #seeds = [123, 234, 345]
-    seeds = [345]
     number_of_kernels_per_dim = [12, 10]
     gamma = 0.99
     #w_updates = 100
@@ -125,13 +126,16 @@ if __name__ == '__main__':
                     break
             print('done lspi')
             greedy_success_rate_per_samples_count.append(success_rate_list[-1])
-            plot_avg_performance_vs_iterations(
-                success_rate_list, seeds[seed_iteration], False)#seed_iteration == (len(seeds)-1))
-        plot_success_rate_vs_samples_amount(
-            greedy_success_rate_per_samples_count, samples_to_collect_list,
-            samples_to_collect_iteration == (len(samples_to_collect_list)-1))
-    evaluator.play_games(evaluation_number_of_games, evaluation_max_steps_per_game)
-    evaluator.play_game(evaluation_max_steps_per_game, render=True)
+            if plot_avg_performance:
+                plot_avg_performance_vs_iterations(
+                    success_rate_list, seeds[seed_iteration], seed_iteration == (len(seeds)-1))
+                evaluator.play_games(evaluation_number_of_games, evaluation_max_steps_per_game)
+            evaluator.play_game(evaluation_max_steps_per_game, render=True)
+
+        if plot_success_rate_vs_amount_of_samples:
+            plot_success_rate_vs_samples_amount(
+                greedy_success_rate_per_samples_count, samples_to_collect_list,
+                samples_to_collect_iteration == (len(samples_to_collect_list)-1))
 
 
 

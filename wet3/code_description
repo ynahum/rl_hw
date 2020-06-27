@@ -7,7 +7,18 @@
 -------------------------------------------------------------------------------
 -------------------------------Part 3 - LSPI:----------------------------------
 -------------------------------------------------------------------------------
-
+ "lspi.py" - run main for-
+ -> Question 3.5 ( for different seeds run, one needs to uncomment the list
+	of seeds used  (seeds = [123, 234, 345]). the default is only seed [345]. 
+	In the for loop of seeds per seed the lspi iterations loop collects
+	the new updated w coeficients and evaluate it over the 50 random stating states by playing a game from it
+	The plotting blocks for a user reaction on the last seed in list.
+	Also there is a flag to enable the plot called plot_avg_performance. defaults to True)
+ -> Question 3.6 (for different amount of samples collected need to uncomment the list
+	of samples_to_collect_list used  (samples_to_collect_list = [10000, 100000, 150000]). the default is on [100000] samples.
+	In the for loop of the amount of samples used, the evaluation is done on the last w caluclated by lspi.
+	The plotting blocks for a user reaction on the last itertaion over the samples_to_collect_list list.
+	Also there is a flag to enable the plot called plot_success_rate_vs_amount_of_samples. defaults to True)
 
 -------------------------------------------------------------------------------
 ----------------------------Part 4 - Q-Learning:-------------------------------
