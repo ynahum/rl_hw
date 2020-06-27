@@ -71,10 +71,13 @@ class Solver:
         # Update Theta :
         # Theta(n) = Theta(n) + alpha*[r(s(n),a(n))+gamma*max{Q(s(n+1),a)}-Q(s(n),a(n))]*Grad(Q(s,a,theta))
         # For terminal state s(n) -  Theta(n) = Theta(n) + alpha*[r(s(n),a(n))-Q(s(n),a(n))]*Grad(Q(s,a,theta))
-        self.theta = self.theta + alpha*(reward+(not done)*(self.gamma)*maxQ-Qn)*self.get_state_action_features(state,action)
+        delta = reward+(not done)*(self.gamma)*maxQ-Qn
+        self.theta = self.theta + alpha*(delta)*self.get_state_action_features(state,action)
 
-        # Return Bellman Error - |T(V)-V| = |V(s(n+1))-V(s(n))| = |max{(s(n+1),a}-max{(s(n),a}|
-        return abs(maxQ-Qn)
+        # Return Bellman Error
+        # Calculate Approx. Value with updated Theta
+        return abs(delta)
+
 
     def PerformanceOfGreedyPolicy(self,env,max_steps=200):
         test_gains = [run_episode(env, solver, is_train=False, epsilon=0.)[0] for _ in range(10)]
