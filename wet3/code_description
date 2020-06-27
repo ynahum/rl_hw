@@ -5,12 +5,22 @@
 -> Question 2.2 (Ploting of Descrete state space feature)
 
 -------------------------------------------------------------------------------
+-------------------------------Part 3 - LSPI:----------------------------------
+-------------------------------------------------------------------------------
+
+
+-------------------------------------------------------------------------------
 ----------------------------Part 4 - Q-Learning:-------------------------------
 -------------------------------------------------------------------------------
  "QLearningSolution.py" - run main for-
- -> Question 4.2 (Measure Performance by of Q function by method ) implemented by method "PerformanceOfGreedyPolicy".
- -> Question 4.3 (Solving Mountain Car Problem by Online Q-Learning ) implemented by method "Qlearning". 
+ -> Question 4.2 (Evaluation Criteria - Measure Performance before training) implemented by method "PerformanceOfGreedyPolicy".
+ -> Question 4.3 (Solving Mountain Car Problem by Online Q-Learning for different seeds) implemented with method "Qlearning". 
     + Added implementation for method "update_theta" in "q_learn_mountain_car.py".
- -> Question 4.4
- -> Question 4.5
+ -> Question 4.4 (Solving Mountain Car Problem by Greedy Policy) 
+ -> Question 4.5 (Solving Mountain Car Problem by Online Q-Learning for different epsilons)
  
+-------------------------------------------------------------------------------
+------------------------------Part 5 - Bonus:----------------------------------
+-------------------------------------------------------------------------------
+"BonusSolution.py" - run main for-
+-> Question 5 (Solving Mountain Car Problem by Online Q-Learning - start from same initial state)
