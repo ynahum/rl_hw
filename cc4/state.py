@@ -66,16 +66,16 @@ class State:
             row = location[0]
             col = location[1]
             if direction == 'U':
-                if row == 0 or self._array[row - 1] != 0:
+                if row == 0 or (self._array[row - 1][col] != 0 and self._array[row - 1][col] != num):
                     return False
             if direction == 'D':
-                if row == (self._r-1) or self._array[row + 1] != 0:
+                if row == (self._r-1) or (self._array[row + 1][col] != 0 and self._array[row + 1][col] != num):
                     return False
             if direction == 'L':
-                if col == 0 or self._array[row][col - 1] != 0:
+                if col == 0 or (self._array[row][col - 1] != 0 and self._array[row][col-1] != num):
                     return False
             if direction == 'R':
-                if col == (self._c-1) or self._array[row][col + 1] != 0:
+                if col == (self._c-1) or (self._array[row][col + 1] != 0 and self._array[row][col + 1] != num):
                     return False
         return True
 

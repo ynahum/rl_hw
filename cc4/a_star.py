@@ -64,7 +64,7 @@ def solve(puzzle):
     prev_mapping = a_star(puzzle)
     # extract the state-action sequence
     plan = traverse(puzzle.goal_state, prev_mapping)
-    print_plan(plan)
+    #print_plan(plan)
     return plan
 
 

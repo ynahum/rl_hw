@@ -1,4 +1,4 @@
-import dijkstra
+import a_star
 from planning_utils import *
 from puzzle import *
 from state import *
@@ -49,28 +49,42 @@ if __name__ == '__main__':
     file_path = "C4.txt"
     tests_dict = parse_tests_file(file_path)
 
-    test1 = tests_dict[1]
-    start_state = ast.literal_eval(test1['s'].strip())
-    goal_state = ast.literal_eval(test1['g'].strip())
-    print(test1)
-    print(start_state)
-    print(goal_state)
+    start_test = 1
+    last_test = 10
+    for test_idx in range(start_test, last_test +1):
+        print(f"{test_idx}:")
+        test = tests_dict[test_idx]
+        start_state = ast.literal_eval(test['s'].strip())
+        goal_state = ast.literal_eval(test['g'].strip())
+        #print(start_state)
+        #print(goal_state)
 
-    initial_state = State(start_state)
-    target_state = State(goal_state)
-    print('initial state')
-    print(initial_state.to_string())
-    initial_actions = initial_state.get_actions()
-    print('actions: {}'.format(initial_actions))
-    right_state = initial_state.apply_action((1, 'R'))
-    print('distance to self:')
-    print(initial_state.get_manhattan_distance(initial_state))
-    print('one right from initial')
-    print(right_state.to_string())
-    print('distance between both:')
-    print(right_state.get_manhattan_distance(initial_state))
+        initial_state = State(start_state)
+        target_state = State(goal_state)
+        #print('initial state')
+        #print(initial_state.to_string())
+        #print('targe state')
+        #print(target_state.to_string())
+        #initial_actions = initial_state.get_actions()
+        #print('actions: {}'.format(initial_actions))
+        #right_state = initial_state.apply_action((1, 'R'))
+        #print('distance to self:')
+        #print(initial_state.get_manhattan_distance(initial_state))
+        #print('one right from initial')
+        #print(right_state.to_string())
+        #print('distance between both:')
+        #print(right_state.get_manhattan_distance(initial_state))
 
-    puzzle = Puzzle(initial_state, target_state)
-    dijkstra.solve(puzzle)
+        puzzle = Puzzle(initial_state, target_state)
+        plan = a_star.solve(puzzle)
+
+        #print(plan)
+        plan_list = []
+        for node in plan[:-1]:
+            #print(node[0].to_string())
+            plan_list.append(f"{node[1][0]}-{node[1][1]}")
+            #print(plan_list[-1])
+        plan_str = ",".join(str(element) for element in plan_list)
+        print(plan_str)
 
 

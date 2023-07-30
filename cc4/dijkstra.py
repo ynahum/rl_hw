@@ -30,7 +30,7 @@ def dijkstra(puzzle):
     while len(fringe) > 0:
         cur_dist, cur_state = heapq.heappop(fringe)  # Get state with min distance from heap
         if cur_state.is_same(goal):  # if reached goal state - stop
-            print('num of states in graph - {0}'.format(len(prev.keys())))
+            #print('num of states in graph - {0}'.format(len(prev.keys())))
             break
         elif cur_state.to_string() in concluded:  # if cur_state already popped from heap - ignore
             continue
@@ -57,7 +57,7 @@ def solve(puzzle):
     prev_mapping = dijkstra(puzzle)
     # extract the state-action sequence
     plan = traverse(puzzle.goal_state, prev_mapping)
-    print_plan(plan)
+    #print_plan(plan)
     return plan
 
 
