@@ -50,7 +50,7 @@ if __name__ == '__main__':
     tests_dict = parse_tests_file(file_path)
 
     start_test = 1
-    last_test = 10
+    last_test = 15
     for test_idx in range(start_test, last_test +1):
         print(f"{test_idx}:")
         test = tests_dict[test_idx]
@@ -82,6 +82,7 @@ if __name__ == '__main__':
         plan_list = []
         for node in plan[:-1]:
             #print(node[0].to_string())
+            #print(node[0].get_actions())
             plan_list.append(f"{node[1][0]}-{node[1][1]}")
             #print(plan_list[-1])
         plan_str = ",".join(str(element) for element in plan_list)

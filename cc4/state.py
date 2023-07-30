@@ -117,9 +117,13 @@ class State:
                 new_col = col - 1
             if action_dir == 'R':
                 new_col = col + 1
-            new_state._array[new_row][new_col] = action_num
             new_state._array[row][col] = 0
             new_locs.append((new_row, new_col))
+
+        for location in new_locs:
+            new_row = location[0]
+            new_col = location[1]
+            new_state._array[new_row][new_col] = action_num
 
         new_state._valids_locs_dict[action_num] = sorted(new_locs)
 
