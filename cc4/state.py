@@ -15,13 +15,15 @@ class State:
                 for j in range(self._c):
                     num = self._array[i][j]
                     if num > 0:
-                        if self._valids_locs_dict.get(num) is not None:
-                            self._valids_locs_dict[num].append((i, j))
-                        else:
+                        if self._valids_locs_dict.get(num) is None:
                             self._valids_locs_dict[num] = []
+                        self._valids_locs_dict[num].append((i, j))
                         temp_list.append(num)
-                    self._valids_locs_dict[num] = sorted(self._valids_locs_dict[num])
-            g_unique_valids_list = sorted(set(temp_list))
+
+            global g_unique_valids_list
+            g_unique_valids_list = copy.deepcopy(sorted(set(temp_list)))
+            for unique_valid in g_unique_valids_list:
+                self._valids_locs_dict[unique_valid] = sorted(self._valids_locs_dict[unique_valid])
 
     def copy(self):
         result = State()
@@ -43,7 +45,15 @@ class State:
         return self._get_location_of_num(0)
 
     def to_string(self):
-        return os.linesep.join([' '.join(m) for m in self._array])
+        result = ""
+
+        # Traverse the rows in the 2D array
+        for row in self._array:
+            # Join the elements of each row and add a newline character
+            row_str = " ".join(str(element) for element in row)
+            result += row_str + "\n"
+
+        return result
 
     def __eq__(self, other):
         return self.to_string() == other.to_string()
@@ -72,13 +82,13 @@ class State:
     def get_actions(self):
         actions = []
         for unique_valid in g_unique_valids_list:
-            if self.can_it_go_direction('U'):
+            if self.can_it_go_direction(unique_valid, 'U'):
                 actions.append((unique_valid, 'U'))
-            if self.can_it_go_direction('D'):
+            if self.can_it_go_direction(unique_valid, 'D'):
                 actions.append((unique_valid, 'D'))
-            if self.can_it_go_direction('L'):
+            if self.can_it_go_direction(unique_valid, 'L'):
                 actions.append((unique_valid, 'L'))
-            if self.can_it_go_direction('R'):
+            if self.can_it_go_direction(unique_valid, 'R'):
                 actions.append((unique_valid, 'R'))
 
         return actions
@@ -107,19 +117,20 @@ class State:
                 new_col = col - 1
             if action_dir == 'R':
                 new_col = col + 1
-            self._array[new_row][new_col] = action_num
-            self._array[row][col] = 0
-            new_locs.append((row, col))
+            new_state._array[new_row][new_col] = action_num
+            new_state._array[row][col] = 0
+            new_locs.append((new_row, new_col))
 
-        self._valids_locs_dict[action_num] = sorted(new_locs)
+        new_state._valids_locs_dict[action_num] = sorted(new_locs)
 
         return new_state
 
     def get_manhattan_distance(self, other):
         total_distance = 0
+        global g_unique_valids_list
         for unique_valid in g_unique_valids_list:
-            for idx, self_location in enumerate(self._valids_locs_dict):
-                other_location = other._valids_locs_dict[idx]
+            for idx, self_location in enumerate(self._valids_locs_dict[unique_valid]):
+                other_location = other._valids_locs_dict[unique_valid][idx]
                 diff = abs(self_location[0] - other_location[0]) + abs(self_location[1] - other_location[1])
                 total_distance += diff
         return total_distance
@@ -128,19 +139,3 @@ class State:
         return self.get_manhattan_distance(other) == 0
 
 
-if __name__ == '__main__':
-    initial_state = State()
-    print('initial state')
-    print(initial_state.to_string())
-    initial_actions = initial_state.get_actions()
-    print('actions: {}'.format(initial_actions))
-    down_state = initial_state.apply_action('d')
-    print('distance to self:')
-    print(initial_state.get_manhattan_distance(initial_state))
-    print('one down from initial')
-    print(down_state.to_string())
-    print('distance between both:')
-    print(down_state.get_manhattan_distance(initial_state))
-    right_state = initial_state.apply_action('r')
-    print('one to the right from initial')
-    print(right_state.to_string())

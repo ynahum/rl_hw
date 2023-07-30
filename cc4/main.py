@@ -1,5 +1,7 @@
 import dijkstra
 from planning_utils import *
+from puzzle import *
+from state import *
 import re
 import ast
 
@@ -53,4 +55,22 @@ if __name__ == '__main__':
     print(test1)
     print(start_state)
     print(goal_state)
+
+    initial_state = State(start_state)
+    target_state = State(goal_state)
+    print('initial state')
+    print(initial_state.to_string())
+    initial_actions = initial_state.get_actions()
+    print('actions: {}'.format(initial_actions))
+    right_state = initial_state.apply_action((1, 'R'))
+    print('distance to self:')
+    print(initial_state.get_manhattan_distance(initial_state))
+    print('one right from initial')
+    print(right_state.to_string())
+    print('distance between both:')
+    print(right_state.get_manhattan_distance(initial_state))
+
+    puzzle = Puzzle(initial_state, target_state)
+    dijkstra.solve(puzzle)
+
 
