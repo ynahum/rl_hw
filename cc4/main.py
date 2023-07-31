@@ -49,43 +49,58 @@ if __name__ == '__main__':
     file_path = "C4.txt"
     tests_dict = parse_tests_file(file_path)
 
+    debug_init = False
+    run_solver = True
+    debug_plan = False
+    debug_length = True
+
     start_test = 1
-    last_test = 15
-    for test_idx in range(start_test, last_test +1):
+    last_test = 10
+    for test_idx in range(start_test, last_test + 1):
         print(f"{test_idx}:")
         test = tests_dict[test_idx]
         start_state = ast.literal_eval(test['s'].strip())
         goal_state = ast.literal_eval(test['g'].strip())
-        #print(start_state)
-        #print(goal_state)
-
         initial_state = State(start_state)
         target_state = State(goal_state)
-        #print('initial state')
-        #print(initial_state.to_string())
-        #print('targe state')
-        #print(target_state.to_string())
-        #initial_actions = initial_state.get_actions()
-        #print('actions: {}'.format(initial_actions))
-        #right_state = initial_state.apply_action((1, 'R'))
-        #print('distance to self:')
-        #print(initial_state.get_manhattan_distance(initial_state))
-        #print('one right from initial')
-        #print(right_state.to_string())
-        #print('distance between both:')
-        #print(right_state.get_manhattan_distance(initial_state))
 
-        puzzle = Puzzle(initial_state, target_state)
-        plan = a_star.solve(puzzle)
+        create_unique_valids_list(initial_state)
 
-        #print(plan)
-        plan_list = []
-        for node in plan[:-1]:
-            #print(node[0].to_string())
-            #print(node[0].get_actions())
-            plan_list.append(f"{node[1][0]}-{node[1][1]}")
-            #print(plan_list[-1])
-        plan_str = ",".join(str(element) for element in plan_list)
-        print(plan_str)
+        if debug_init:
+            print(start_state)
+            print(goal_state)
+            print('initial state')
+            print(initial_state.to_string())
+            print('targe state')
+            print(target_state.to_string())
+            initial_actions = initial_state.get_actions()
+            print('actions: {}'.format(initial_actions))
+            right_state = initial_state.apply_action((1, 'R'))
+            print('distance to self:')
+            print(initial_state.get_manhattan_distance(initial_state))
+            print('one right from initial')
+            print(right_state.to_string())
+            print('distance between both:')
+            print(right_state.get_manhattan_distance(initial_state))
+
+        if run_solver:
+            puzzle = Puzzle(initial_state, target_state)
+            plan = a_star.solve(puzzle)
+
+            #print(plan)
+            plan_list = []
+            for node in plan[:-1]:
+                if debug_plan:
+                    print("************")
+                    print(node[0].to_string())
+                    print(node[0].get_actions())
+                plan_list.append(f"{node[1][0]}-{node[1][1]}")
+                if debug_plan:
+                    print(plan_list[-1])
+            plan_str = ",".join(str(element) for element in plan_list)
+            if debug_length:
+                print(f"num of actions = {len(plan_list)}")
+
+            print(plan_str)
 
 
