@@ -6,27 +6,6 @@ class Puzzle:
         self.start_state = start_state
         self.goal_state = goal_state
 
-        self.state_history = None
-        self.action_history = None
-
-    def reset(self):
-        self.state_history = [self.start_state]
-        self.action_history = []
-        return self._step_result()
-
-    def apply_action(self, a):
-        new_state = self.state_history[-1].apply_action(a)
-        self.state_history.append(new_state)
-        self.action_history.append(a)
-        return self._step_result()
-
-    def _goal_reached(self):
-        return self.goal_state.is_same(self.state_history[-1])
-
-    def _step_result(self):
-        current_state = self.state_history[-1]
-        return current_state, current_state.get_actions(), self._goal_reached()
-
 
 if __name__ == '__main__':
     initial_state = State()
