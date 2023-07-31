@@ -3,10 +3,10 @@ from planning_utils import *
 import heapq
 import datetime
 import os
+import random
 
 
-
-def a_star(puzzle):
+def a_star(puzzle, weight):
     '''
     apply a_star to a given puzzle
     :param puzzle: the puzzle to solve
@@ -54,14 +54,14 @@ def a_star(puzzle):
                     # if we found shorter path to 'neighbor' - update
                     distances[neighbor_state_str] = neighbor_dist
                     prev[neighbor_state_str] = cur_state
-                    neighbor_total_dist = neighbor_dist + neighbor_state.get_manhattan_distance(goal)
+                    neighbor_total_dist = ((1-weight) * neighbor_dist) + (weight * neighbor_state.get_manhattan_distance(goal))
                     heapq.heappush(fringe, (neighbor_total_dist, neighbor_state))
     return prev
 
 
-def solve(puzzle):
+def solve(puzzle, weight=0.5):
     # compute mapping to previous using dijkstra
-    prev_mapping = a_star(puzzle)
+    prev_mapping = a_star(puzzle, weight)
     # extract the state-action sequence
     plan = traverse(puzzle.goal_state, prev_mapping)
     #print_plan(plan)
