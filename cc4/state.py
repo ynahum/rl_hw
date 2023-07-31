@@ -1,6 +1,7 @@
 import os
 import copy
 
+
 g_unique_valids_list = []
 
 class State:
@@ -10,7 +11,6 @@ class State:
             self._c = len(self._array[0])
             self._r = len(self._array)
             self._valids_locs_dict = {}
-            temp_list = []
             for i in range(self._r):
                 for j in range(self._c):
                     num = self._array[i][j]
@@ -18,12 +18,6 @@ class State:
                         if self._valids_locs_dict.get(num) is None:
                             self._valids_locs_dict[num] = []
                         self._valids_locs_dict[num].append((i, j))
-                        temp_list.append(num)
-
-            global g_unique_valids_list
-            g_unique_valids_list = copy.deepcopy(sorted(set(temp_list)))
-            for unique_valid in g_unique_valids_list:
-                self._valids_locs_dict[unique_valid] = sorted(self._valids_locs_dict[unique_valid])
 
     def copy(self):
         result = State()
@@ -32,17 +26,6 @@ class State:
         result._r = self._r
         result._valids_locs_dict = copy.deepcopy(self._valids_locs_dict)
         return result
-
-    def _get_location_of_num(self, c):
-        locations = []
-        for i in range(self._r):
-            for j in range(self._c):
-                if self._array[i][j] == c:
-                    locations.append((i, j))
-        return locations
-
-    def _get_empty_locations(self):
-        return self._get_location_of_num(0)
 
     def to_string(self):
         result = ""
@@ -125,7 +108,7 @@ class State:
             new_col = location[1]
             new_state._array[new_row][new_col] = action_num
 
-        new_state._valids_locs_dict[action_num] = sorted(new_locs)
+        new_state._valids_locs_dict[action_num] = new_locs
 
         return new_state
 
@@ -133,13 +116,33 @@ class State:
         total_distance = 0
         global g_unique_valids_list
         for unique_valid in g_unique_valids_list:
-            for idx, self_location in enumerate(self._valids_locs_dict[unique_valid]):
-                other_location = other._valids_locs_dict[unique_valid][idx]
-                diff = abs(self_location[0] - other_location[0]) + abs(self_location[1] - other_location[1])
-                total_distance += diff
+            self_location = min(self._valids_locs_dict[unique_valid], key=lambda x: (x[0], x[1]))
+            other_location = min(other._valids_locs_dict[unique_valid], key=lambda x: (x[0], x[1]))
+            if self_location == other_location:
+                continue
+            diff = abs(self_location[0] - other_location[0]) + abs(self_location[1] - other_location[1])
+            total_distance += diff
         return total_distance
 
     def is_same(self, other):
         return self.get_manhattan_distance(other) == 0
 
+    def get_num_of_rows(self):
+        return self._r
 
+    def get_num_of_cols(self):
+        return self._c
+
+    def get_value_at(self, row, col):
+        return self._array[row][col]
+
+
+def create_unique_valids_list(init_state):
+    temp_list = []
+    for i in range(init_state.get_num_of_rows()):
+        for j in range(init_state.get_num_of_cols()):
+            num = init_state.get_value_at(i, j)
+            if num > 0:
+                temp_list.append(num)
+    global g_unique_valids_list
+    g_unique_valids_list = copy.deepcopy(sorted(set(temp_list)))
